@@ -22,3 +22,18 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+.idea
+.claude
+
+
+# Ignore actual secret files (not templates)
+#*-secret.yaml # => is allowed, it is in controlled (demo) environments
+!*-secret.yaml.template
+
+# Ignore any files with credentials
+*credentials*.yaml
+!*credentials*.yaml.template
+
+# Ignore any local overrides
+*.local.yaml
