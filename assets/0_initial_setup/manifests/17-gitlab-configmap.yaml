@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitlab-config
+  namespace: gitlab-system
+  labels:
+    app: gitlab
+data:
+  # GitLab configuration options
+  # These can be customized based on your needs
+
+  # Enable/disable GitLab features
+  gitlab_features: |
+    signup_enabled: false
+    gravatar_enabled: true
+    twitter_sharing_enabled: true
+
+  # GitLab default settings
+  gitlab_defaults: |
+    default_projects_limit: 100
+    default_can_create_group: true
+    default_theme: 2
+    default_projects_features_issues: true
+    default_projects_features_merge_requests: true
+    default_projects_features_wiki: true
+    default_projects_features_snippets: true
+    default_projects_features_builds: true
+    default_projects_features_container_registry: true
+
+  # Repository settings
+  repository_settings: |
+    default_branch_protection: 1
+    housekeeping_enabled: true
+    housekeeping_optimize_repository_period: 10
+
+  # Security settings
+  security_settings: |
+    password_authentication_enabled: true
+    require_two_factor_authentication: false
+    session_expire_delay: 10080
+
+  # Monitoring settings
+  monitoring_settings: |
+    prometheus_metrics_enabled: true
+    sidekiq_metrics_enabled: true
