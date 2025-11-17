@@ -17,6 +17,11 @@ data:
   # Enable admin user
   admin.enabled: "true"
 
+  # Local user accounts configuration
+  # Define admin-user with apiKey and login capabilities
+  accounts.admin-user: apiKey,login
+  accounts.admin-user.enabled: "true"
+
   # Git commit message template
   application.resourceTrackingMethod: annotation
 

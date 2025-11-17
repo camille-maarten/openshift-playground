@@ -10,20 +10,55 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    printf "${GREEN}[INFO]${NC} %s\n" "$1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    printf "${RED}[ERROR]${NC} %s\n" "$1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    printf "${YELLOW}[WARNING]${NC} %s\n" "$1"
 }
+
+print_success() {
+    printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"
+}
+
+# ============================================================================
+# ENSURE WE'RE IN THE CORRECT DIRECTORY
+# ============================================================================
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+INFO_DIR="${PROJECT_ROOT}/info"
+
+# Remove old environment_config.md if it exists
+if [ -f "${INFO_DIR}/environment_config.md" ]; then
+    print_info "Removing old environment configuration file..."
+    rm -f "${INFO_DIR}/environment_config.md"
+fi
+
+# Change to the script directory
+cd "$SCRIPT_DIR"
+
+print_info "Working directory: $SCRIPT_DIR"
+echo ""
 
 # Check if oc is installed
 if ! command -v oc &> /dev/null; then
     print_error "oc CLI is not installed. Please install it first."
+    exit 1
+fi
+
+# Check if helm is installed
+if ! command -v helm &> /dev/null; then
+    print_error "Helm is not installed. Please install it first."
+    echo ""
+    echo "Install Helm:"
+    echo "  macOS:  brew install helm"
+    echo "  Linux:  curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
     exit 1
 fi
 
@@ -45,103 +80,85 @@ print_info "Current cluster: $(oc whoami --show-server)"
 echo ""
 
 # ============================================================================
-# PRE-INSTALLATION CHECKS
+# INSTALLATION OPTIONS
 # ============================================================================
 
 print_info "==================================================================="
-print_info "  PRE-INSTALLATION VALIDATION"
+print_info "  OpenShift GitOps Setup - Installation Options"
 print_info "==================================================================="
 echo ""
 
-# Check if 15-gitlab-user-password-secret.yaml exists
-if [ ! -f "manifests/15-gitlab-user-password-secret.yaml" ]; then
-    print_error "SETUP REQUIRED: GitLab user configuration file is missing!"
-    echo ""
-    echo "You need to create the GitLab user configuration file before installation."
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "STEP 1: Copy the template file"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "Run this command to copy the template:"
-    echo ""
-    echo "  cp manifests/15-gitlab-user-password-secret.yaml.template manifests/15-gitlab-user-password-secret.yaml"
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "STEP 2: Add your SSH public key (OPTIONAL - for Git access)"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "If you want to use SSH to clone GitLab repositories:"
-    echo ""
-    echo "a) Check if you have an SSH key already:"
-    echo "   ls ~/.ssh/id_*.pub"
-    echo ""
-    echo "b) If you DON'T have one, create it:"
-    echo "   ssh-keygen -t ed25519 -C \"your-email@example.com\" -f ~/.ssh/id_ed25519"
-    echo "   (Just press ENTER for all prompts to accept defaults)"
-    echo ""
-    echo "c) Display your public key:"
-    echo "   cat ~/.ssh/id_ed25519.pub"
-    echo ""
-    echo "d) Copy the output (it starts with 'ssh-ed25519 ...')"
-    echo ""
-    echo "e) Open the file for editing:"
-    echo "   vim manifests/15-gitlab-user-password-secret.yaml"
-    echo "   (or use: nano, code, or any text editor)"
-    echo ""
-    echo "f) Find this line in the file:"
-    echo "   # ssh_public_key: ssh-ed25519 AAAA... your-email@example.com"
-    echo ""
-    echo "g) Remove the '#' and replace with YOUR public key:"
-    echo "   ssh_public_key: ssh-ed25519 AAAA... your-email@example.com"
-    echo ""
-    echo "h) Save and exit (in vim: press ESC, then type :wq and press ENTER)"
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "ALTERNATIVE: Skip SSH key (use HTTPS only)"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "If you only want to use HTTPS (with username/password), just copy"
-    echo "the template without adding an SSH key. You can add it later."
-    echo ""
-    echo "  cp manifests/15-gitlab-user-password-secret.yaml.template manifests/15-gitlab-user-password-secret.yaml"
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    print_info "After completing the steps above, run this script again:"
-    echo "  ./install.sh"
-    echo ""
-    exit 1
-fi
-
-print_info "✓ GitLab user configuration file found"
+echo "This script will install:"
+echo "  1. Red Hat OpenShift GitOps (ArgoCD)"
+echo "  2. Gitea (lightweight Git server) OR use external GitHub"
 echo ""
 
+# Ask about Git server option
+echo "Git Server Options:"
+echo "  1. Install Gitea (local Git server on OpenShift)"
+echo "  2. Use external GitHub repository"
+echo "  3. Skip Git server (ArgoCD only)"
+echo ""
+
+read -p "Select option (1/2/3) [1]: " GIT_OPTION
+GIT_OPTION=${GIT_OPTION:-1}
+
+INSTALL_GITEA=false
+USE_GITHUB=false
+
+case $GIT_OPTION in
+    1)
+        INSTALL_GITEA=true
+        print_info "Will install Gitea locally"
+        ;;
+    2)
+        USE_GITHUB=true
+        print_info "Will configure GitHub integration"
+
+        echo ""
+        echo "GitHub Configuration:"
+        read -p "Enter GitHub organization or username: " GITHUB_ORG
+        read -p "Enter GitHub repository name (or leave empty for multiple repos): " GITHUB_REPO
+        read -p "Enter GitHub Personal Access Token: " -s GITHUB_TOKEN
+        echo ""
+
+        if [ -z "$GITHUB_ORG" ] || [ -z "$GITHUB_TOKEN" ]; then
+            print_error "GitHub organization and token are required"
+            exit 1
+        fi
+        ;;
+    3)
+        print_info "Skipping Git server installation"
+        ;;
+    *)
+        print_error "Invalid option"
+        exit 1
+        ;;
+esac
+
+echo ""
 print_info "==================================================================="
 print_info "  INSTALLATION SUMMARY"
 print_info "==================================================================="
 echo ""
+
 print_info "This installation will:"
-echo "  - Install ArgoCD with OpenShift GitOps"
-echo "  - Install GitLab Community Edition"
-echo "  - Automatically configure ArgoCD to use the local GitLab instance"
+echo "  - Install Red Hat OpenShift GitOps (ArgoCD)"
+if [ "$INSTALL_GITEA" = true ]; then
+    echo "  - Install Gitea Git server"
+elif [ "$USE_GITHUB" = true ]; then
+    echo "  - Configure GitHub integration for: $GITHUB_ORG"
+    [ -n "$GITHUB_REPO" ] && echo "    Repository: $GITHUB_REPO"
+fi
 echo ""
-print_info "Default credentials:"
-echo "  - ArgoCD admin: admin / argo1234!"
-echo "  - GitLab root: root / gitlab1234!"
+print_info "Default ArgoCD credentials:"
+echo "  - admin / argocd1234!!"
+echo "  - admin-user / argocd1234!"
 echo ""
 
-# Confirm installation
-echo "This script will install:"
-echo "  1. Red Hat OpenShift GitOps (ArgoCD)"
-echo "  2. GitLab Community Edition"
-echo ""
-read -p "Do you want to proceed with the installation? (y/n) " -n 1 -r
-echo ""
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    print_warning "Installation cancelled."
-    exit 0
-fi
+# ============================================================================
+# PART 1: Installing Red Hat OpenShift GitOps (ArgoCD)
+# ============================================================================
 
 echo ""
 print_info "==================================================================="
@@ -149,196 +166,288 @@ print_info "  PART 1: Installing Red Hat OpenShift GitOps (ArgoCD)"
 print_info "==================================================================="
 echo ""
 
-# Step 1: Create namespace
 print_info "Step 1/5: Creating namespace..."
 oc apply -f manifests/01-namespace.yaml
-sleep 3
 
-# Step 2: Create OperatorGroup
 print_info "Step 2/5: Creating OperatorGroup..."
 oc apply -f manifests/02-operatorgroup.yaml
-sleep 2
 
-# Step 3: Install operator
 print_info "Step 3/5: Installing Red Hat GitOps Operator..."
 oc apply -f manifests/03-subscription.yaml
 
 print_info "Waiting for operator to be installed (this may take 2-5 minutes)..."
-sleep 15
+sleep 30
 
-# Wait for operator to be ready
+# Wait for the operator to be ready
 TIMEOUT=300
 ELAPSED=0
-while [ $ELAPSED -lt $TIMEOUT ]; do
-    if oc get csv -n openshift-gitops 2>/dev/null | grep -q "Succeeded"; then
-        print_info "Operator installed successfully!"
-        break
+while ! oc get csv -n openshift-gitops | grep -q "openshift-gitops-operator.*Succeeded"; do
+    if [ $ELAPSED -ge $TIMEOUT ]; then
+        print_error "Timeout waiting for operator installation"
+        exit 1
     fi
-    echo -n "."
-    sleep 5
-    ELAPSED=$((ELAPSED + 5))
+    sleep 10
+    ELAPSED=$((ELAPSED + 10))
 done
 
-if [ $ELAPSED -ge $TIMEOUT ]; then
-    print_error "Operator installation timed out. Please check the status manually."
-    echo "Run: oc get csv -n openshift-gitops"
-    exit 1
-fi
-
+print_info "Operator installed successfully!"
 echo ""
-sleep 5
 
-# Step 4: Apply admin password secret
 print_info "Step 4/5: Applying admin password secret..."
 oc apply -f manifests/10-admin-password-secret.yaml
-sleep 2
 
-# Step 5: Deploy ArgoCD instance
 print_info "Step 5/5: Deploying ArgoCD instance..."
 oc apply -f manifests/04-argocd-instance.yaml
 
 print_info "Waiting for ArgoCD to be ready (this may take 3-5 minutes)..."
 sleep 30
 
-# Wait for ArgoCD pods to be ready
+# Wait for ArgoCD server to be ready
 print_info "Waiting for all ArgoCD pods to be running..."
 TIMEOUT=300
 ELAPSED=0
-while [ $ELAPSED -lt $TIMEOUT ]; do
-    READY_PODS=$(oc get pods -n openshift-gitops --no-headers 2>/dev/null | grep -v "Completed" | grep "Running" | wc -l)
-    TOTAL_PODS=$(oc get pods -n openshift-gitops --no-headers 2>/dev/null | grep -v "Completed" | wc -l)
+while true; do
+    if [ $ELAPSED -ge $TIMEOUT ]; then
+        print_error "Timeout waiting for ArgoCD pods"
+        exit 1
+    fi
 
-    if [ "$READY_PODS" -ge 5 ] && [ "$TOTAL_PODS" -ge 5 ]; then
-        print_info "All ArgoCD pods are running!"
+    PENDING=$(oc get pods -n openshift-gitops --no-headers 2>/dev/null | grep -v Running | grep -v Completed | wc -l || echo "1")
+    if [ "$PENDING" -eq "0" ]; then
         break
     fi
-    echo -n "."
-    sleep 5
-    ELAPSED=$((ELAPSED + 5))
+
+    sleep 10
+    ELAPSED=$((ELAPSED + 10))
 done
 
-if [ $ELAPSED -ge $TIMEOUT ]; then
-    print_warning "Some pods may not be ready yet. Please check the status manually."
-    echo "Run: oc get pods -n openshift-gitops"
-fi
-
+print_info "All ArgoCD pods are running!"
 echo ""
-sleep 5
 
-# Apply ConfigMaps
 print_info "Applying ConfigMaps..."
 oc apply -f manifests/05-argocd-repositories-configmap.yaml
-oc apply -f manifests/06-argocd-cm-configmap.yaml
+# Note: 06-argocd-cm-configmap.yaml is managed by the ArgoCD operator via extraConfig in the ArgoCD CR
+# Applying it manually would conflict with operator management
 oc apply -f manifests/07-argocd-rbac-configmap.yaml
 
-echo ""
+print_info "Ensuring admin-user password is set..."
+oc apply -f manifests/10-admin-password-secret.yaml
+
+print_info "Restarting ArgoCD server pods to pick up configuration changes..."
+oc delete pod -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops
+
+print_info "Waiting for ArgoCD server to restart..."
+sleep 15
+oc wait --for=condition=Ready pod -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops --timeout=360s
+
 print_info "ArgoCD installation complete!"
 echo ""
 
-# Show pod status
 print_info "Current pod status:"
 oc get pods -n openshift-gitops
-
-echo ""
-echo ""
-print_info "==================================================================="
-print_info "  PART 2: Installing GitLab Community Edition"
-print_info "==================================================================="
 echo ""
 
-# Step 6: Create GitLab namespace
-print_info "Step 6/11: Creating GitLab namespace..."
-oc apply -f manifests/11-gitlab-namespace.yaml
-sleep 3
+ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "not-available")
+print_info "ArgoCD Access Information:"
+echo "  URL: https://${ARGOCD_URL}"
+echo "  Login with one of these accounts:"
+echo "    - admin / argocd1234!!"
+echo "    - admin-user / argocd1234!"
+echo ""
 
-# Step 7: Create GitLab OperatorGroup
-print_info "Step 7/11: Creating GitLab OperatorGroup..."
-oc apply -f manifests/12-gitlab-operatorgroup.yaml
-sleep 2
+# ============================================================================
+# PART 2: Installing Gitea (if selected)
+# ============================================================================
 
-# Step 8: Install GitLab operator
-print_info "Step 8/11: Installing GitLab Operator..."
-oc apply -f manifests/13-gitlab-subscription.yaml
+if [ "$INSTALL_GITEA" = true ]; then
+    echo ""
+    print_info "==================================================================="
+    print_info "  PART 2: Installing Gitea Git Server"
+    print_info "==================================================================="
+    echo ""
 
-print_info "Waiting for GitLab operator to be installed (this may take 2-5 minutes)..."
-sleep 15
+    # Check if Gitea is already installed
+    if helm list -n gitea 2>/dev/null | grep -q gitea; then
+        print_warning "Gitea is already installed. Uninstalling to ensure clean installation..."
+        helm uninstall gitea -n gitea --wait 2>/dev/null || true
+        print_info "Waiting for Gitea pods to terminate..."
+        sleep 10
 
-# Wait for GitLab operator to be ready
-TIMEOUT=300
-ELAPSED=0
-while [ $ELAPSED -lt $TIMEOUT ]; do
-    if oc get csv -n gitlab-system 2>/dev/null | grep -q "Succeeded"; then
-        print_info "GitLab Operator installed successfully!"
-        break
+        # Optionally delete PVCs to start fresh
+        print_warning "Deleting Gitea persistent volume claims for fresh installation..."
+        oc delete pvc --all -n gitea 2>/dev/null || true
+        sleep 5
     fi
-    echo -n "."
-    sleep 5
-    ELAPSED=$((ELAPSED + 5))
-done
 
-if [ $ELAPSED -ge $TIMEOUT ]; then
-    print_error "GitLab Operator installation timed out. Please check the status manually."
-    echo "Run: oc get csv -n gitlab-system"
-    exit 1
-fi
+    print_info "Step 1/5: Adding Gitea Helm repository..."
+    helm repo add gitea-charts https://dl.gitea.com/charts/ 2>/dev/null || true
+    helm repo update
 
-echo ""
-sleep 5
+    print_info "Step 2/5: Creating gitea namespace..."
+    oc create namespace gitea 2>/dev/null || oc project gitea
 
-# Step 9: Apply GitLab secrets
-print_info "Step 9/12: Applying GitLab secrets..."
-oc apply -f manifests/14-gitlab-root-password-secret.yaml
-oc apply -f manifests/15-gitlab-user-password-secret.yaml
-oc apply -f manifests/19-gitlab-minio-secret.yaml
-sleep 2
+    print_info "Step 3/5: Configuring OpenShift security..."
+    # Grant anyuid SCC to service accounts for Gitea compatibility
+    oc adm policy add-scc-to-user anyuid -z gitea -n gitea 2>/dev/null || true
+    oc adm policy add-scc-to-user anyuid -z default -n gitea 2>/dev/null || true
 
-# Step 10: Apply GitLab ConfigMap
-print_info "Step 10/12: Applying GitLab ConfigMap..."
-oc apply -f manifests/17-gitlab-configmap.yaml
-sleep 2
+    print_info "Step 4/5: Getting cluster domain..."
+    CLUSTER_DOMAIN=$(oc get ingresses.config/cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
+    print_info "Using domain: ${CLUSTER_DOMAIN}"
 
-# Step 11: Deploy GitLab instance
-print_info "Step 11/12: Deploying GitLab instance (this may take 5-10 minutes)..."
-oc apply -f manifests/16-gitlab-instance.yaml
-sleep 10
+    print_info "Step 5/5: Creating Gitea values file..."
+    cat > /tmp/gitea-values.yaml <<EOF
+gitea:
+  admin:
+    username: admin
+    password: gitea1234!
+    email: admin@gitea.local
 
-print_info "GitLab is being deployed. This can take several minutes..."
-print_info "You can monitor the progress with: oc get pods -n gitlab-system -w"
+  config:
+    server:
+      DOMAIN: gitea-http.gitea.svc.cluster.local
+      ROOT_URL: https://gitea-gitea.${CLUSTER_DOMAIN}/
+      DISABLE_SSH: false
+      SSH_DOMAIN: gitea-ssh.gitea.svc.cluster.local
+      SSH_PORT: 22
 
-# Optionally apply routes
-print_info "Applying GitLab routes..."
-oc apply -f manifests/18-gitlab-route.yaml 2>/dev/null || print_warning "Routes may need to be configured after GitLab pods are ready"
+    database:
+      DB_TYPE: sqlite3
 
-echo ""
-sleep 5
+    security:
+      INSTALL_LOCK: true
 
-# Step 12: Auto-configure ArgoCD to use GitLab
-print_info "Step 12/12: Configuring ArgoCD to use local GitLab..."
+    service:
+      DISABLE_REGISTRATION: false
 
-# Create a secret for ArgoCD to access GitLab
-cat <<EOF | oc apply -f -
----
+service:
+  http:
+    type: ClusterIP
+    port: 3000
+  ssh:
+    type: ClusterIP
+    port: 22
+
+ingress:
+  enabled: false
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+postgresql:
+  enabled: false
+
+redis-cluster:
+  enabled: false
+EOF
+
+    print_info "Step 6/6: Installing Gitea via Helm..."
+    helm upgrade --install gitea gitea-charts/gitea \
+      --namespace gitea \
+      --values /tmp/gitea-values.yaml \
+      --wait \
+      --timeout 600s || print_warning "Gitea installation initiated. Check status with: oc get pods -n gitea"
+
+    print_info "Creating OpenShift route for Gitea..."
+    oc create route edge gitea \
+      --service=gitea-http \
+      --port=http \
+      -n gitea 2>/dev/null || print_warning "Route may already exist"
+
+    GITEA_URL=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "gitea-gitea.${CLUSTER_DOMAIN}")
+
+    print_info "Gitea installation complete!"
+    echo ""
+
+    print_info "Configuring ArgoCD to use Gitea..."
+    cat > /tmp/gitea-repo-secret.yaml <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
-  name: gitlab-repo-credentials
+  name: gitea-repo-credentials
   namespace: openshift-gitops
   labels:
     argocd.argoproj.io/secret-type: repository
 type: Opaque
 stringData:
   type: git
-  url: https://gitlab-webservice-default.gitlab-system.svc.cluster.local
-  password: gitlab1234!
-  username: root
-  insecure: "true"
-  enableLfs: "true"
+  url: https://${GITEA_URL}
+  password: gitea1234!
+  username: admin
+  insecure: "false"
 EOF
 
-print_info "ArgoCD has been configured to use the local GitLab instance"
-print_info "You can now create repositories in GitLab and they will be accessible to ArgoCD"
+    oc apply -f /tmp/gitea-repo-secret.yaml
+    rm -f /tmp/gitea-repo-secret.yaml
 
-echo ""
+    print_info "ArgoCD configured to use Gitea!"
+fi
+
+# ============================================================================
+# PART 3: Configuring GitHub Integration (if selected)
+# ============================================================================
+
+if [ "$USE_GITHUB" = true ]; then
+    echo ""
+    print_info "==================================================================="
+    print_info "  PART 3: Configuring GitHub Integration"
+    print_info "==================================================================="
+    echo ""
+
+    if [ -n "$GITHUB_REPO" ]; then
+        # Single repository
+        GITHUB_URL="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
+        print_info "Configuring single repository: $GITHUB_URL"
+
+        cat > /tmp/github-repo-secret.yaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-repo-${GITHUB_REPO}
+  namespace: openshift-gitops
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: git
+  url: ${GITHUB_URL}
+  password: ${GITHUB_TOKEN}
+  username: ${GITHUB_ORG}
+EOF
+    else
+        # Organization-wide credentials
+        GITHUB_URL="https://github.com/${GITHUB_ORG}"
+        print_info "Configuring organization-wide access: $GITHUB_URL"
+
+        cat > /tmp/github-repo-secret.yaml <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-org-${GITHUB_ORG}
+  namespace: openshift-gitops
+  labels:
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: git
+  url: ${GITHUB_URL}
+  password: ${GITHUB_TOKEN}
+  username: ${GITHUB_ORG}
+EOF
+    fi
+
+    oc apply -f /tmp/github-repo-secret.yaml
+    rm -f /tmp/github-repo-secret.yaml
+
+    print_info "GitHub integration configured!"
+    print_info "You can now create ArgoCD applications using repositories from: $GITHUB_ORG"
+fi
+
+# ============================================================================
+# Installation Summary
+# ============================================================================
+
 echo ""
 print_info "==================================================================="
 print_info "  Installation Summary"
@@ -346,13 +455,13 @@ print_info "==================================================================="
 echo ""
 
 # Get ArgoCD URL
-ARGOCD_ROUTE=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not yet available")
+ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available yet")
 
 echo "=========================================="
 echo "ArgoCD Access Information"
 echo "=========================================="
 echo ""
-echo "ArgoCD URL: https://${ARGOCD_ROUTE}"
+echo "ArgoCD URL: https://${ARGOCD_URL}"
 echo ""
 echo "Login Options:"
 echo "1. OpenShift OAuth (Recommended):"
@@ -361,39 +470,308 @@ echo "   - Use your OpenShift credentials"
 echo ""
 echo "2. Admin User:"
 echo "   - Username: admin"
-echo "   - Password: argo1234!"
+echo "   - Password: argocd1234!!"
 echo ""
 echo "=========================================="
 echo ""
 
-# Get GitLab URL
-GITLAB_ROUTE=$(oc get route gitlab -n gitlab-system -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not yet available")
+if [ "$INSTALL_GITEA" = true ]; then
+    echo "=========================================="
+    echo "Gitea Access Information"
+    echo "=========================================="
+    echo ""
+    echo "Gitea URL: https://${GITEA_URL}"
+    echo ""
+    echo "Admin Login:"
+    echo "  - Username: admin"
+    echo "  - Password: gitea1234!"
+    echo ""
+    echo "To check Gitea deployment status:"
+    echo "  oc get pods -n gitea"
+    echo "  helm list -n gitea"
+    echo ""
+    echo "=========================================="
+    echo ""
+fi
 
-echo "=========================================="
-echo "GitLab Access Information"
-echo "=========================================="
-echo ""
-echo "GitLab URL: https://${GITLAB_ROUTE}"
-echo ""
-echo "Note: GitLab may take 5-10 minutes to fully deploy"
-echo ""
-echo "Root Login:"
-echo "  - Username: root"
-echo "  - Password: gitlab1234!"
-echo ""
-echo "To check GitLab deployment status:"
-echo "  oc get pods -n gitlab-system"
-echo "  oc get gitlab -n gitlab-system"
-echo ""
-echo "=========================================="
-echo ""
+if [ "$USE_GITHUB" = true ]; then
+    echo "=========================================="
+    echo "GitHub Integration"
+    echo "=========================================="
+    echo ""
+    echo "GitHub Organization: $GITHUB_ORG"
+    if [ -n "$GITHUB_REPO" ]; then
+        echo "Repository: $GITHUB_REPO"
+    else
+        echo "Access: All repositories in organization"
+    fi
+    echo ""
+    echo "Create ArgoCD applications using:"
+    if [ -n "$GITHUB_REPO" ]; then
+        echo "  Repository URL: https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
+    else
+        echo "  Repository URL: https://github.com/${GITHUB_ORG}/<your-repo>"
+    fi
+    echo ""
+    echo "=========================================="
+    echo ""
+fi
 
 print_info "Installation complete!"
 echo ""
-print_info "Next steps:"
-echo "  1. Wait for all GitLab pods to be running (check with: oc get pods -n gitlab-system)"
-echo "  2. Access ArgoCD UI and configure your first application"
-echo "  3. Access GitLab UI and create your first project"
-echo "  4. Integrate GitLab with ArgoCD for GitOps workflows"
+
+# Print credentials summary table
+echo "╔═══════════════════════════════════════════════════════════════════════════════════╗"
+echo "║                          ACCESS CREDENTIALS SUMMARY                               ║"
+echo "╠═══════════════╦═══════════════════════════════════════════════════════════════════╣"
+echo "║ Service       ║ Details                                                           ║"
+echo "╠═══════════════╬═══════════════════════════════════════════════════════════════════╣"
+echo "║ ArgoCD        ║                                                                   ║"
+echo "║               ║ Route:    https://${ARGOCD_URL}"
+echo "║               ║ Username: admin                                                   ║"
+echo "║               ║ Password: argocd1234!!                                               ║"
+echo "║               ║ (or use 'Log in via OpenShift')                                   ║"
+
+if [ "$INSTALL_GITEA" = true ]; then
+    echo "╠═══════════════╬═══════════════════════════════════════════════════════════════════╣"
+    echo "║ Gitea         ║                                                                   ║"
+    echo "║               ║ Route:    https://${GITEA_URL}"
+    echo "║               ║ Username: admin                                                   ║"
+    echo "║               ║ Password: gitea1234!                                              ║"
+fi
+
+if [ "$USE_GITHUB" = true ]; then
+    echo "╠═══════════════╬═══════════════════════════════════════════════════════════════════╣"
+    echo "║ GitHub        ║                                                                   ║"
+    echo "║               ║ Organization: ${GITHUB_ORG}                                       "
+    if [ -n "$GITHUB_REPO" ]; then
+        echo "║               ║ Repository:   ${GITHUB_REPO}                                      "
+    else
+        echo "║               ║ Access: All repositories in organization                          ║"
+    fi
+fi
+
+echo "╚═══════════════╩═══════════════════════════════════════════════════════════════════╝"
 echo ""
-print_info "For more information, see README.md"
+
+print_info "Next steps:"
+echo "  1. Access ArgoCD UI at: https://${ARGOCD_URL}"
+echo "  2. Login with admin / argocd1234!! or use OpenShift OAuth"
+
+if [ "$INSTALL_GITEA" = true ]; then
+    echo "  3. Access Gitea at: https://${GITEA_URL}"
+    echo "  4. Create your first repository in Gitea"
+    echo "  5. Create your first ArgoCD application pointing to Gitea"
+elif [ "$USE_GITHUB" = true ]; then
+    echo "  3. Create your first ArgoCD application pointing to your GitHub repository"
+else
+    echo "  3. Configure a Git repository connection in ArgoCD"
+    echo "  4. Create your first ArgoCD application"
+fi
+
+echo ""
+print_info "Verification commands:"
+echo "  • ArgoCD status: oc get pods -n openshift-gitops"
+if [ "$INSTALL_GITEA" = true ]; then
+    echo "  • Gitea status:  oc get pods -n gitea"
+fi
+echo ""
+print_info "For troubleshooting, see the documentation in assets/0_initial_setup/"
+
+# Create environment_config.md with actual values
+print_info "Creating environment configuration file..."
+mkdir -p "${INFO_DIR}"
+
+cat > "${INFO_DIR}/environment_config.md" <<EOF
+# Environment Configuration
+
+This file contains the access credentials and configuration details for your OpenShift GitOps environment.
+
+**Generated on**: $(date '+%Y-%m-%d %H:%M:%S')
+
+## Access Credentials Summary
+
+\`\`\`
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║                          ACCESS CREDENTIALS SUMMARY                               ║
+╠═══════════════╦═══════════════════════════════════════════════════════════════════╣
+║ Service       ║ Details                                                           ║
+╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
+║ ArgoCD        ║                                                                   ║
+║               ║ Route:    https://${ARGOCD_URL}
+║               ║ Username: admin                                                   ║
+║               ║ Password: argocd1234!!                                               ║
+║               ║ (or use 'Log in via OpenShift')                                   ║
+EOF
+
+if [ "$INSTALL_GITEA" = true ]; then
+cat >> "${INFO_DIR}/environment_config.md" <<EOF
+╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
+║ Gitea         ║                                                                   ║
+║               ║ Route:    https://${GITEA_URL}
+║               ║ Username: admin                                                   ║
+║               ║ Password: gitea1234!                                              ║
+EOF
+fi
+
+if [ "$USE_GITHUB" = true ]; then
+cat >> "${INFO_DIR}/environment_config.md" <<EOF
+╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
+║ GitHub        ║                                                                   ║
+║               ║ Organization: ${GITHUB_ORG}
+EOF
+if [ -n "$GITHUB_REPO" ]; then
+cat >> "${INFO_DIR}/environment_config.md" <<EOF
+║               ║ Repository:   ${GITHUB_REPO}
+EOF
+else
+cat >> "${INFO_DIR}/environment_config.md" <<EOF
+║               ║ Access: All repositories in organization                          ║
+EOF
+fi
+fi
+
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+╚═══════════════╩═══════════════════════════════════════════════════════════════════╝
+```
+
+## Quick Access Commands
+
+### ArgoCD
+\`\`\`bash
+# Get ArgoCD URL
+echo "https://\$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}')"
+
+# Login with ArgoCD CLI (Option 1 - Recommended: Interactive)
+argocd login \$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}') \\
+  --username admin --insecure
+# When prompted, enter password: argocd1234!!
+
+# Login with ArgoCD CLI (Option 2 - Single Command)
+# Note: Password must be properly quoted due to special character
+argocd login \$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}') \\
+  --username admin --password 'argocd1234!!' --insecure
+\`\`\`
+
+EOF
+
+if [ "$INSTALL_GITEA" = true ]; then
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+### Gitea
+```bash
+# Get Gitea URL
+echo "https://$(oc get route gitea -n gitea -o jsonpath='{.spec.host}')"
+```
+
+EOF
+fi
+
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+## Default Credentials
+
+### ArgoCD
+- **Username**: `admin`
+- **Password**: `argocd1234!!`
+- **Alternative**: Use "Log in via OpenShift" with your OpenShift credentials
+
+EOF
+
+if [ "$INSTALL_GITEA" = true ]; then
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+### Gitea
+- **Username**: `admin`
+- **Password**: `gitea1234!`
+
+EOF
+fi
+
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+## Verification Commands
+
+### Check ArgoCD Status
+```bash
+oc get pods -n openshift-gitops
+oc get argocd -n openshift-gitops
+oc get route openshift-gitops-server -n openshift-gitops
+```
+
+EOF
+
+if [ "$INSTALL_GITEA" = true ]; then
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+### Check Gitea Status
+```bash
+oc get pods -n gitea
+helm list -n gitea
+oc get route gitea -n gitea
+```
+
+EOF
+fi
+
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+## Security Notes
+
+⚠️ **Important**: These are default credentials for development/testing purposes.
+
+For production environments:
+1. Change the default passwords immediately after installation
+2. Use OpenShift OAuth for ArgoCD authentication
+3. Configure RBAC policies appropriately
+4. Use secrets management solutions (e.g., External Secrets Operator)
+5. Enable audit logging
+
+## Changing Passwords
+
+### ArgoCD Admin Password
+
+1. Generate a new bcrypt hash:
+   ```bash
+   htpasswd -nbBC 10 "" your-new-password | tr -d ':\n' | sed 's/$2y/$2a/'
+   ```
+
+2. Update the secret:
+   ```bash
+   oc patch secret argocd-secret -n openshift-gitops \
+     -p '{"stringData": {"admin.password": "<your-bcrypt-hash>"}}'
+   ```
+
+3. Restart ArgoCD server:
+   ```bash
+   oc delete pod -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops
+   ```
+
+EOF
+
+if [ "$INSTALL_GITEA" = true ]; then
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+### Gitea Admin Password
+
+1. Log into Gitea UI
+2. Go to Settings → Account → Password
+3. Update your password
+
+Or use Gitea CLI:
+```bash
+oc exec -n gitea deployment/gitea -- gitea admin user change-password \
+  --username admin --password your-new-password
+```
+
+EOF
+fi
+
+cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+## Additional Resources
+
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
+- [OpenShift GitOps Documentation](https://docs.openshift.com/container-platform/latest/cicd/gitops/)
+- [Gitea Documentation](https://docs.gitea.io/)
+- [Setup Guide](../assets/0_initial_setup/README.md)
+- [Quick Reference](../assets/0_initial_setup/QUICK_REFERENCE.md)
+
+---
+
+**Installation Script**: `assets/0_initial_setup/install.sh`
+EOF
+
+print_success "Environment configuration saved to: ${INFO_DIR}/environment_config.md"

@@ -35,6 +35,9 @@ data:
     g, system:cluster-admins, role:admin
     g, cluster-admins, role:admin
 
+    # Grant admin role to local admin-user account
+    g, admin-user, role:admin
+
     # Grant developer role to specific groups (customize as needed)
     # g, developers, role:developer
     # g, your-openshift-group, role:developer

@@ -7,12 +7,7 @@ metadata:
 spec:
   # Server configuration
   server:
-    autoscale:
-      enabled: true
-      hpa:
-        maxReplicas: 3
-        minReplicas: 1
-        targetCPUUtilizationPercentage: 80
+    replicas: 2
     grpc:
       ingress:
         enabled: false
@@ -88,14 +83,7 @@ spec:
 
   # High Availability
   ha:
-    enabled: true
-    resources:
-      limits:
-        cpu: 500m
-        memory: 256Mi
-      requests:
-        cpu: 250m
-        memory: 128Mi
+    enabled: false
 
   # Monitoring
   monitoring:
@@ -190,3 +178,5 @@ spec:
   extraConfig:
     accounts.admin: apiKey,login
     accounts.developer: apiKey,login
+    accounts.admin-user: apiKey,login
+    accounts.admin-user.enabled: "true"
