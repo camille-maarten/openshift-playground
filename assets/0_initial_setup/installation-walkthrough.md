@@ -83,7 +83,7 @@ Unlike the previous GitLab setup, **no template files need to be copied or edite
 - **Step 3/7**: Subscribe to Red Hat OpenShift GitOps Operator
   - Waits for operator to be ready (1-3 minutes)
 - **Step 4/7**: Apply ArgoCD admin password secret
-  - Sets password: `argocd1234!!`
+  - Sets password: `argocd1234!`
 - **Step 5/7**: Deploy ArgoCD instance
   - Waits for ArgoCD to be ready (2-4 minutes)
 - **Step 6/7**: Apply ArgoCD configuration ConfigMaps
@@ -131,7 +131,7 @@ Unlike the previous GitLab setup, **no template files need to be copied or edite
   ╠═══════════════╦═══════════════════════════════════════════════╣
   ║ ArgoCD        ║ Route: https://...                            ║
   ║               ║ Username: admin                               ║
-  ║               ║ Password: argocd1234!!                           ║
+  ║               ║ Password: argocd1234!                           ║
   ╠═══════════════╬═══════════════════════════════════════════════╣
   ║ Gitea         ║ Route: https://...                            ║
   ║               ║ Username: admin                               ║
@@ -157,7 +157,7 @@ Unlike the previous GitLab setup, **no template files need to be copied or edite
 echo "https://$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}')"
 
 # Login options:
-# - Username: admin / Password: argocd1234!!
+# - Username: admin / Password: argocd1234!
 # - OR click "Log in via OpenShift" to use your OpenShift credentials
 ```
 

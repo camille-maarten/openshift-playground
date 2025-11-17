@@ -111,7 +111,7 @@ echo "https://$(oc get route gitea -n gitea -o jsonpath='{.spec.host}')"
 
 **ArgoCD:**
 - Username: `admin`
-- Password: `argocd1234!!`
+- Password: `argocd1234!`
 - Or use "Log in via OpenShift"
 
 **Gitea:**
@@ -171,7 +171,7 @@ chmod +x /usr/local/bin/argocd
 ### Login to ArgoCD
 ```bash
 ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}')
-argocd login $ARGOCD_URL --username admin --password argocd1234!! --insecure
+argocd login $ARGOCD_URL --username admin --password argocd1234! --insecure
 ```
 
 ### Create Application

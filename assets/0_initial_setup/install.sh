@@ -152,7 +152,7 @@ elif [ "$USE_GITHUB" = true ]; then
 fi
 echo ""
 print_info "Default ArgoCD credentials:"
-echo "  - admin / argocd1234!!"
+echo "  - admin / argocd1234!"
 echo "  - admin-user / argocd1234!"
 echo ""
 
@@ -251,7 +251,7 @@ ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpat
 print_info "ArgoCD Access Information:"
 echo "  URL: https://${ARGOCD_URL}"
 echo "  Login with one of these accounts:"
-echo "    - admin / argocd1234!!"
+echo "    - admin / argocd1234!"
 echo "    - admin-user / argocd1234!"
 echo ""
 
@@ -454,14 +454,21 @@ print_info "  Installation Summary"
 print_info "==================================================================="
 echo ""
 
-# Get ArgoCD URL
+# Get ArgoCD URL and version
 ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available yet")
+ARGOCD_VERSION=$(oc get deployment openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null | grep -oP 'v[\d.]+' || echo "Unknown")
+
+# Get Gitea version if installed
+if [ "$INSTALL_GITEA" = true ]; then
+    GITEA_VERSION=$(helm list -n gitea -o json 2>/dev/null | grep -oP '"app_version":"[^"]*"' | cut -d'"' -f4 || echo "Unknown")
+fi
 
 echo "=========================================="
 echo "ArgoCD Access Information"
 echo "=========================================="
 echo ""
 echo "ArgoCD URL: https://${ARGOCD_URL}"
+echo "ArgoCD Version: ${ARGOCD_VERSION}"
 echo ""
 echo "Login Options:"
 echo "1. OpenShift OAuth (Recommended):"
@@ -470,7 +477,7 @@ echo "   - Use your OpenShift credentials"
 echo ""
 echo "2. Admin User:"
 echo "   - Username: admin"
-echo "   - Password: argocd1234!!"
+echo "   - Password: argocd1234!"
 echo ""
 echo "=========================================="
 echo ""
@@ -481,6 +488,7 @@ if [ "$INSTALL_GITEA" = true ]; then
     echo "=========================================="
     echo ""
     echo "Gitea URL: https://${GITEA_URL}"
+    echo "Gitea Version: ${GITEA_VERSION}"
     echo ""
     echo "Admin Login:"
     echo "  - Username: admin"
@@ -527,14 +535,16 @@ echo "╠═══════════════╦═══════�
 echo "║ Service       ║ Details                                                           ║"
 echo "╠═══════════════╬═══════════════════════════════════════════════════════════════════╣"
 echo "║ ArgoCD        ║                                                                   ║"
+echo "║               ║ Version:  ${ARGOCD_VERSION}                                       "
 echo "║               ║ Route:    https://${ARGOCD_URL}"
 echo "║               ║ Username: admin                                                   ║"
-echo "║               ║ Password: argocd1234!!                                               ║"
+echo "║               ║ Password: argocd1234!                                            ║"
 echo "║               ║ (or use 'Log in via OpenShift')                                   ║"
 
 if [ "$INSTALL_GITEA" = true ]; then
     echo "╠═══════════════╬═══════════════════════════════════════════════════════════════════╣"
     echo "║ Gitea         ║                                                                   ║"
+    echo "║               ║ Version:  ${GITEA_VERSION}                                        "
     echo "║               ║ Route:    https://${GITEA_URL}"
     echo "║               ║ Username: admin                                                   ║"
     echo "║               ║ Password: gitea1234!                                              ║"
@@ -556,7 +566,7 @@ echo ""
 
 print_info "Next steps:"
 echo "  1. Access ArgoCD UI at: https://${ARGOCD_URL}"
-echo "  2. Login with admin / argocd1234!! or use OpenShift OAuth"
+echo "  2. Login with admin / argocd1234! or use OpenShift OAuth"
 
 if [ "$INSTALL_GITEA" = true ]; then
     echo "  3. Access Gitea at: https://${GITEA_URL}"
@@ -598,9 +608,10 @@ This file contains the access credentials and configuration details for your Ope
 ║ Service       ║ Details                                                           ║
 ╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
 ║ ArgoCD        ║                                                                   ║
+║               ║ Version:  ${ARGOCD_VERSION}                                       "
 ║               ║ Route:    https://${ARGOCD_URL}
 ║               ║ Username: admin                                                   ║
-║               ║ Password: argocd1234!!                                               ║
+║               ║ Password: argocd1234!                                             ║
 ║               ║ (or use 'Log in via OpenShift')                                   ║
 EOF
 
@@ -608,6 +619,7 @@ if [ "$INSTALL_GITEA" = true ]; then
 cat >> "${INFO_DIR}/environment_config.md" <<EOF
 ╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
 ║ Gitea         ║                                                                   ║
+║               ║ Version:  ${GITEA_VERSION}                                        "
 ║               ║ Route:    https://${GITEA_URL}
 ║               ║ Username: admin                                                   ║
 ║               ║ Password: gitea1234!                                              ║
@@ -645,12 +657,12 @@ echo "https://\$(oc get route openshift-gitops-server -n openshift-gitops -o jso
 # Login with ArgoCD CLI (Option 1 - Recommended: Interactive)
 argocd login \$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}') \\
   --username admin --insecure
-# When prompted, enter password: argocd1234!!
+# When prompted, enter password: argocd1234!
 
 # Login with ArgoCD CLI (Option 2 - Single Command)
 # Note: Password must be properly quoted due to special character
 argocd login \$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}') \\
-  --username admin --password 'argocd1234!!' --insecure
+  --username admin --password 'argocd1234!' --insecure
 \`\`\`
 
 EOF
@@ -671,7 +683,7 @@ cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
 
 ### ArgoCD
 - **Username**: `admin`
-- **Password**: `argocd1234!!`
+- **Password**: `argocd1234!`
 - **Alternative**: Use "Log in via OpenShift" with your OpenShift credentials
 
 EOF
