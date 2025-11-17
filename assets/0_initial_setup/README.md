@@ -95,7 +95,25 @@ The installation script offers three Git server options:
 
 ### Quick Installation (Recommended)
 
-The automated installation script will guide you through the setup:
+We provide two installation scripts:
+
+#### Option A: Complete Installation (ArgoCD + Gitea) - Fastest
+
+Installs everything automatically without prompts:
+
+```bash
+# From repository root
+bash assets/0_initial_setup/install_complete.sh
+```
+
+This script:
+- Automatically installs both ArgoCD and Gitea
+- No prompts or user interaction required
+- Best for: Quick start, learning, development environments
+
+#### Option B: Interactive Installation - More Control
+
+The interactive script allows you to choose your Git server:
 
 ```bash
 # From repository root

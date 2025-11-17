@@ -4,13 +4,20 @@
 
 ## Installation Commands
 
-### Quick Install (Automated)
+### Quick Install - Complete (Fastest)
+Installs ArgoCD + Gitea automatically without prompts:
+```bash
+# From repository root
+bash assets/0_initial_setup/install_complete.sh
+```
+
+### Quick Install - Interactive (More Control)
 ```bash
 # From repository root
 bash assets/0_initial_setup/install.sh
 ```
 
-The script will prompt you to choose:
+The interactive script will prompt you to choose:
 1. Install Gitea (local Git server)
 2. Use external GitHub repository
 3. Skip Git server (ArgoCD only)

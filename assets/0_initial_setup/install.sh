@@ -456,11 +456,11 @@ echo ""
 
 # Get ArgoCD URL and version
 ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available yet")
-ARGOCD_VERSION=$(oc get deployment openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null | grep -oP 'v[\d.]+' || echo "Unknown")
+ARGOCD_VERSION=$(oc get csv -n openshift-gitops 2>/dev/null | grep openshift-gitops-operator | awk '{print $3}' || echo "Unknown")
 
 # Get Gitea version if installed
 if [ "$INSTALL_GITEA" = true ]; then
-    GITEA_VERSION=$(helm list -n gitea -o json 2>/dev/null | grep -oP '"app_version":"[^"]*"' | cut -d'"' -f4 || echo "Unknown")
+    GITEA_VERSION=$(helm list -n gitea -o json 2>/dev/null | python3 -c "import sys, json; data = json.load(sys.stdin); print(data[0]['app_version'] if data else 'Unknown')" 2>/dev/null || echo "Unknown")
 fi
 
 echo "=========================================="

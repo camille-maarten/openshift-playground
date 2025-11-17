@@ -14,16 +14,26 @@ A comprehensive environment for exploring and learning Red Hat OpenShift GitOps 
 Before exploring the playground scenarios, you need to set up the foundational components:
 
 1. **Install ArgoCD and Gitea**
+
+   **Option A - Complete Installation (Fastest):**
+   ```bash
+   cd assets/0_initial_setup
+   ./install_complete.sh
+   ```
+   Automatically installs both ArgoCD and Gitea without prompts.
+
+   **Option B - Interactive Installation (More Control):**
    ```bash
    cd assets/0_initial_setup
    ./install.sh
    ```
+   Interactive script that lets you choose between Gitea, GitHub, or ArgoCD-only installation.
 
-   This interactive script will:
-   - Install Red Hat OpenShift GitOps (ArgoCD)
-   - Optionally install Gitea Git server
-   - Configure authentication and RBAC
-   - Set up default credentials
+   What gets installed:
+   - Red Hat OpenShift GitOps (ArgoCD)
+   - Gitea Git server (complete install) or optional (interactive)
+   - Authentication and RBAC configuration
+   - Default credentials
 
 2. **Review the Setup Documentation**
    - See [assets/0_initial_setup/README.md](assets/0_initial_setup/README.md) for detailed installation instructions
