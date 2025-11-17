@@ -456,7 +456,7 @@ echo ""
 
 # Get ArgoCD URL and version
 ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available yet")
-ARGOCD_VERSION=$(oc get csv -n openshift-gitops 2>/dev/null | grep openshift-gitops-operator | awk '{print $3}' || echo "Unknown")
+ARGOCD_VERSION=$(oc get csv -n openshift-gitops 2>/dev/null | grep openshift-gitops-operator | awk '{print $1}' | cut -d'v' -f2 || echo "Unknown")
 
 # Get Gitea version if installed
 if [ "$INSTALL_GITEA" = true ]; then
