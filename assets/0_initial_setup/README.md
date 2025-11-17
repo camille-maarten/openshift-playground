@@ -154,8 +154,12 @@ oc apply -f manifests/04-argocd-instance.yaml
 
 # Apply ConfigMaps
 oc apply -f manifests/05-argocd-repositories-configmap.yaml
-oc apply -f manifests/06-argocd-cm-configmap.yaml
+# Note: 06-argocd-cm-configmap.yaml is managed by the ArgoCD operator via extraConfig
+# The operator generates this ConfigMap from the ArgoCD CR settings
 oc apply -f manifests/07-argocd-rbac-configmap.yaml
+
+# Restart ArgoCD server to pick up changes
+oc delete pod -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops
 ```
 
 #### Step 2: Install Gitea (Optional)
@@ -260,8 +264,8 @@ oc get route gitea -n gitea -o jsonpath='{.spec.host}'
 ### Default Credentials
 
 **ArgoCD:**
-- Username: `admin`
-- Password: `argocd1234!!`
+- Username: `admin` or `admin-user`
+- Password: `argocd1234!!` (admin) or `argocd1234!` (admin-user)
 - Alternatively: Use "Log in via OpenShift" with your OpenShift credentials
 
 **Gitea (if installed):**
@@ -280,6 +284,7 @@ oc get route gitea -n gitea -o jsonpath='{.spec.host}'
 3. Login using one of these methods:
    - **OpenShift OAuth** (Recommended): Click "LOG IN VIA OPENSHIFT"
    - **Admin Account**: Username `admin`, Password `argocd1234!!`
+   - **Admin User Account**: Username `admin-user`, Password `argocd1234!`
 
 ## Accessing Gitea UI (if installed)
 
