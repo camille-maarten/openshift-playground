@@ -2,6 +2,15 @@
 
 set -e
 
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+# Gitea Helm Chart Configuration
+GITEA_CHART_VERSION="12.4.0"
+GITEA_CHART_REPO="https://dl.gitea.com/charts/"
+GITEA_CHART_REPO_NAME="gitea-charts"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -34,10 +43,15 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 INFO_DIR="${PROJECT_ROOT}/info"
 
-# Remove old environment_config.md if it exists
+# Remove old environment files if they exist
 if [ -f "${INFO_DIR}/environment_config.md" ]; then
     print_info "Removing old environment configuration file..."
     rm -f "${INFO_DIR}/environment_config.md"
+fi
+
+if [ -f "${INFO_DIR}/versions.csv" ]; then
+    print_info "Removing old versions file..."
+    rm -f "${INFO_DIR}/versions.csv"
 fi
 
 # Change to the script directory
@@ -280,7 +294,7 @@ if [ "$INSTALL_GITEA" = true ]; then
     fi
 
     print_info "Step 1/5: Adding Gitea Helm repository..."
-    helm repo add gitea-charts https://dl.gitea.com/charts/ 2>/dev/null || true
+    helm repo add ${GITEA_CHART_REPO_NAME} ${GITEA_CHART_REPO} 2>/dev/null || true
     helm repo update
 
     print_info "Step 2/5: Creating gitea namespace..."
@@ -342,8 +356,9 @@ redis-cluster:
   enabled: false
 EOF
 
-    print_info "Step 6/6: Installing Gitea via Helm..."
-    helm upgrade --install gitea gitea-charts/gitea \
+    print_info "Step 6/6: Installing Gitea via Helm (version ${GITEA_CHART_VERSION})..."
+    helm upgrade --install gitea ${GITEA_CHART_REPO_NAME}/gitea \
+      --version ${GITEA_CHART_VERSION} \
       --namespace gitea \
       --values /tmp/gitea-values.yaml \
       --wait \
@@ -458,9 +473,10 @@ echo ""
 ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available yet")
 ARGOCD_VERSION=$(oc get csv -n openshift-gitops 2>/dev/null | grep openshift-gitops-operator | awk '{print $1}' | cut -d'v' -f2 || echo "Unknown")
 
-# Get Gitea version if installed
+# Get Gitea versions if installed
 if [ "$INSTALL_GITEA" = true ]; then
-    GITEA_VERSION=$(helm list -n gitea -o json 2>/dev/null | python3 -c "import sys, json; data = json.load(sys.stdin); print(data[0]['app_version'] if data else 'Unknown')" 2>/dev/null || echo "Unknown")
+    GITEA_APP_VERSION=$(helm list -n gitea -o json 2>/dev/null | python3 -c "import sys, json; data = json.load(sys.stdin); print(data[0]['app_version'] if data else 'Unknown')" 2>/dev/null || echo "Unknown")
+    GITEA_HELM_CHART_VERSION=$(helm list -n gitea -o json 2>/dev/null | python3 -c "import sys, json; data = json.load(sys.stdin); print(data[0]['chart'].split('-')[-1] if data else 'Unknown')" 2>/dev/null || echo "Unknown")
 fi
 
 echo "=========================================="
@@ -488,7 +504,9 @@ if [ "$INSTALL_GITEA" = true ]; then
     echo "=========================================="
     echo ""
     echo "Gitea URL: https://${GITEA_URL}"
-    echo "Gitea Version: ${GITEA_VERSION}"
+    echo "Gitea Application Version: ${GITEA_APP_VERSION}"
+    echo "Helm Chart Version: ${GITEA_HELM_CHART_VERSION}"
+    echo "Chart Repository: ${GITEA_CHART_REPO}"
     echo ""
     echo "Admin Login:"
     echo "  - Username: admin"
@@ -544,10 +562,12 @@ echo "║               ║ (or use 'Log in via OpenShift')                     
 if [ "$INSTALL_GITEA" = true ]; then
     echo "╠═══════════════╬═══════════════════════════════════════════════════════════════════╣"
     echo "║ Gitea         ║                                                                   ║"
-    echo "║               ║ Version:  ${GITEA_VERSION}                                        "
-    echo "║               ║ Route:    https://${GITEA_URL}"
-    echo "║               ║ Username: admin                                                   ║"
-    echo "║               ║ Password: gitea1234!                                              ║"
+    echo "║               ║ App Version:   ${GITEA_APP_VERSION}                               "
+    echo "║               ║ Chart Version: ${GITEA_HELM_CHART_VERSION}                        "
+    echo "║               ║ Chart Repo:    ${GITEA_CHART_REPO}                                "
+    echo "║               ║ Route:         https://${GITEA_URL}"
+    echo "║               ║ Username:      admin                                              ║"
+    echo "║               ║ Password:      gitea1234!                                         ║"
 fi
 
 if [ "$USE_GITHUB" = true ]; then
@@ -588,10 +608,25 @@ fi
 echo ""
 print_info "For troubleshooting, see the documentation in assets/0_initial_setup/"
 
-# Create environment_config.md with actual values
-print_info "Creating environment configuration file..."
+# Create environment_config.md and versions.csv with actual values
+print_info "Creating environment configuration files..."
 mkdir -p "${INFO_DIR}"
 
+# Create versions.csv
+cat > "${INFO_DIR}/versions.csv" <<EOF
+# This file contains the installed component versions for this environment
+# Generated on: $(date '+%Y-%m-%d %H:%M:%S')
+component,version
+argocd,${ARGOCD_VERSION}
+EOF
+
+# Append Gitea version if installed
+if [ "$INSTALL_GITEA" = true ]; then
+    echo "gitea_app,${GITEA_APP_VERSION}" >> "${INFO_DIR}/versions.csv"
+    echo "gitea_chart,${GITEA_HELM_CHART_VERSION}" >> "${INFO_DIR}/versions.csv"
+fi
+
+# Create environment_config.md
 cat > "${INFO_DIR}/environment_config.md" <<EOF
 # Environment Configuration
 
@@ -619,10 +654,12 @@ if [ "$INSTALL_GITEA" = true ]; then
 cat >> "${INFO_DIR}/environment_config.md" <<EOF
 ╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
 ║ Gitea         ║                                                                   ║
-║               ║ Version:  ${GITEA_VERSION}                                        "
-║               ║ Route:    https://${GITEA_URL}
-║               ║ Username: admin                                                   ║
-║               ║ Password: gitea1234!                                              ║
+║               ║ App Version:   ${GITEA_APP_VERSION}                               "
+║               ║ Chart Version: ${GITEA_HELM_CHART_VERSION}                        "
+║               ║ Chart Repo:    ${GITEA_CHART_REPO}                                "
+║               ║ Route:         https://${GITEA_URL}
+║               ║ Username:      admin                                              ║
+║               ║ Password:      gitea1234!                                         ║
 EOF
 fi
 
@@ -787,3 +824,4 @@ cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
 EOF
 
 print_success "Environment configuration saved to: ${INFO_DIR}/environment_config.md"
+print_success "Component versions saved to: ${INFO_DIR}/versions.csv"
