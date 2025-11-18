@@ -64,7 +64,7 @@ For a complete automated workflow that uploads manifests to Gitea AND deploys to
 
 ```bash
 cd assets/1_gitops
-./upload_and_deploy.sh
+./upload-and-deploy.sh
 ```
 
 This single script will:
@@ -152,7 +152,7 @@ The `upload_and_deploy.sh` script combines both repository setup and ArgoCD depl
 
 ```bash
 cd assets/1_gitops
-./upload_and_deploy.sh
+./upload-and-deploy.sh
 ```
 
 **What it does:**

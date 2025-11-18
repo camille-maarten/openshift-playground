@@ -14,7 +14,7 @@
 # - git, curl, and jq installed
 #
 # Usage:
-#   ./upload_and_deploy.sh
+#   ./upload-and-deploy.sh
 # ============================================================================
 
 set -e  # Exit on error

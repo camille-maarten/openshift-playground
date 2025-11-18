@@ -404,19 +404,15 @@ create_environment_config() {
 
     # Get ArgoCD/GitOps version
     GITOPS_VERSION=$(oc get csv -n ${ARGOCD_NAMESPACE} -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("GitOps")) | .spec.version' 2>/dev/null || echo "N/A")
+        jq -r '.items[] | select(.spec.displayName | contains("GitOps")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
     # Get RHDH Operator version
     RHDH_OPERATOR_VERSION=$(oc get csv -n rhdh -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("Red Hat Developer Hub")) | .spec.version' 2>/dev/null || echo "N/A")
-
-    # Get RHDH instance version (from Backstage CR)
-    RHDH_IMAGE=$(oc get backstage developer-hub -n rhdh -o jsonpath='{.status.conditions[?(@.type=="Deployed")].message}' 2>/dev/null | \
-        grep -oP 'image.*' || echo "N/A")
+        jq -r '.items[] | select(.spec.displayName | contains("Red Hat Developer Hub")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
     # Get AMQ Streams (Kafka) Operator version
     KAFKA_OPERATOR_VERSION=$(oc get csv -n kafka -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("AMQ Streams") or contains("Strimzi")) | .spec.version' 2>/dev/null || echo "N/A")
+        jq -r '.items[] | select(.spec.displayName | contains("Streams for Apache Kafka") or contains("AMQ Streams") or contains("Strimzi")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
     # Get Gitea route
     GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
@@ -438,13 +434,11 @@ This file contains configuration information for platform components deployed vi
 
 \`\`\`
 ╔═══════════════════════════╦═══════════════════════════════════════════════════════════╗
-║ Component                 ║ Version / Details                                         ║
+║ Component                 ║ Version                                                   ║
 ╠═══════════════════════════╬═══════════════════════════════════════════════════════════╣
 ║ OpenShift GitOps          ║ ${GITOPS_VERSION}                                         ║
-║ Red Hat Developer Hub     ║                                                           ║
-║   - Operator              ║ ${RHDH_OPERATOR_VERSION}                                  ║
-║   - Instance              ║ ${RHDH_IMAGE}                                             ║
-║ AMQ Streams (Kafka)       ║ ${KAFKA_OPERATOR_VERSION}                                 ║
+║ Red Hat Developer Hub     ║ ${RHDH_OPERATOR_VERSION}                                  ║
+║ Streams for Apache Kafka  ║ ${KAFKA_OPERATOR_VERSION}                                 ║
 ╚═══════════════════════════╩═══════════════════════════════════════════════════════════╝
 \`\`\`
 
