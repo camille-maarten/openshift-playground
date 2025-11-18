@@ -3,6 +3,9 @@ kind: OperatorGroup
 metadata:
   name: rhdh-operator-group
   namespace: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
-  targetNamespaces:
-    - rhdh
+  # RHDH operator requires AllNamespaces mode
+  # Empty spec or no targetNamespaces means AllNamespaces
+  upgradeStrategy: Default

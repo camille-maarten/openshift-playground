@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: developer-hub
+  name: kafka-operator
   namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
 
@@ -13,11 +15,11 @@ spec:
     #   oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'
     repoURL: GITEA_URL/admin/playground-gitops.git
     targetRevision: main
-    path: developerhub/manifests
+    path: kafka/manifests
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: rhdh
+    namespace: kafka
 
   syncPolicy:
     automated:
@@ -26,24 +28,9 @@ spec:
       allowEmpty: false
     syncOptions:
       - CreateNamespace=true
-      - RespectIgnoreDifferences=true
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
-  # Health assessment for custom resources
-  ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      jsonPointers:
-        - /spec/replicas
-    - group: rhdh.redhat.com
-      kind: Backstage
-      jsonPointers:
-        - /spec/monitoring
-        - /spec/application/imagePullPolicy
-        - /spec/application/resources
-        - /status

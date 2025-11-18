@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
   name: app-config-rhdh
   namespace: rhdh
 data:
@@ -28,15 +30,6 @@ data:
           port: ${POSTGRES_PORT}
           user: ${POSTGRES_USER}
           password: ${POSTGRES_PASSWORD}
-
-    # Enable dynamic plugin caching
-    dynamicPlugins:
-      frontend:
-        # Enable caching for dynamic plugins
-        backstage.plugin-cache:
-          enabled: true
-          # Cache plugins for 24 hours
-          maxAge: 86400
 
     # Permission framework configuration
     permission:
