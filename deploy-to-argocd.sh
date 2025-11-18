@@ -404,19 +404,15 @@ create_environment_config() {
 
     # Get ArgoCD/GitOps version
     GITOPS_VERSION=$(oc get csv -n ${ARGOCD_NAMESPACE} -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("GitOps")) | .spec.version' 2>/dev/null || echo "N/A")
+        jq -r '.items[] | select(.spec.displayName | contains("GitOps")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
     # Get RHDH Operator version
     RHDH_OPERATOR_VERSION=$(oc get csv -n rhdh -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("Red Hat Developer Hub")) | .spec.version' 2>/dev/null || echo "N/A")
-
-    # Get RHDH instance version (from Backstage CR)
-    RHDH_IMAGE=$(oc get backstage developer-hub -n rhdh -o jsonpath='{.status.conditions[?(@.type=="Deployed")].message}' 2>/dev/null | \
-        grep -oP 'image.*' || echo "N/A")
+        jq -r '.items[] | select(.spec.displayName | contains("Red Hat Developer Hub")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
     # Get AMQ Streams (Kafka) Operator version
     KAFKA_OPERATOR_VERSION=$(oc get csv -n kafka -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("AMQ Streams") or contains("Strimzi")) | .spec.version' 2>/dev/null || echo "N/A")
+        jq -r '.items[] | select(.spec.displayName | contains("Streams for Apache Kafka") or contains("AMQ Streams") or contains("Strimzi")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
     # Get Gitea route
     GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
@@ -438,13 +434,11 @@ This file contains configuration information for platform components deployed vi
 
 \`\`\`
 ╔═══════════════════════════╦═══════════════════════════════════════════════════════════╗
-║ Component                 ║ Version / Details                                         ║
+║ Component                 ║ Version                                                   ║
 ╠═══════════════════════════╬═══════════════════════════════════════════════════════════╣
 ║ OpenShift GitOps          ║ ${GITOPS_VERSION}                                         ║
-║ Red Hat Developer Hub     ║                                                           ║
-║   - Operator              ║ ${RHDH_OPERATOR_VERSION}                                  ║
-║   - Instance              ║ ${RHDH_IMAGE}                                             ║
-║ AMQ Streams (Kafka)       ║ ${KAFKA_OPERATOR_VERSION}                                 ║
+║ Red Hat Developer Hub     ║ ${RHDH_OPERATOR_VERSION}                                  ║
+║ Streams for Apache Kafka  ║ ${KAFKA_OPERATOR_VERSION}                                 ║
 ╚═══════════════════════════╩═══════════════════════════════════════════════════════════╝
 \`\`\`
 
@@ -608,6 +602,53 @@ For detailed instructions on changing credentials, refer to:
 EOF
 
     print_success "Environment configuration saved to: ${INFO_DIR}/environment_config_platform.md"
+
+    # Append platform operator versions to versions.csv
+    print_info "Appending platform operator versions to versions.csv..."
+
+    VERSIONS_FILE="${INFO_DIR}/versions.csv"
+
+    # Check if versions.csv exists
+    if [ ! -f "${VERSIONS_FILE}" ]; then
+        print_warning "versions.csv not found, creating new file"
+        cat > "${VERSIONS_FILE}" <<CSV_HEADER
+# This file contains the installed component versions for this environment
+# Generated on: $(date '+%Y-%m-%d %H:%M:%S')
+component,version
+CSV_HEADER
+    fi
+
+    # Extract version numbers from the full strings
+    GITOPS_VERSION_NUM=$(echo "$GITOPS_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
+    RHDH_VERSION_NUM=$(echo "$RHDH_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
+    KAFKA_VERSION_NUM=$(echo "$KAFKA_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+-?\d*' | head -1 || echo "N/A")
+
+    # Check if entries already exist and remove them (to avoid duplicates)
+    if grep -q "^rhdh_operator," "${VERSIONS_FILE}"; then
+        # Remove existing RHDH operator entry
+        sed -i.bak '/^rhdh_operator,/d' "${VERSIONS_FILE}"
+    fi
+
+    if grep -q "^kafka_operator," "${VERSIONS_FILE}"; then
+        # Remove existing Kafka operator entry
+        sed -i.bak '/^kafka_operator,/d' "${VERSIONS_FILE}"
+    fi
+
+    # Append new entries
+    if [ "$RHDH_VERSION_NUM" != "N/A" ]; then
+        echo "rhdh_operator,${RHDH_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added RHDH operator version: ${RHDH_VERSION_NUM}"
+    fi
+
+    if [ "$KAFKA_VERSION_NUM" != "N/A" ]; then
+        echo "kafka_operator,${KAFKA_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added Kafka operator version: ${KAFKA_VERSION_NUM}"
+    fi
+
+    # Clean up backup files
+    rm -f "${VERSIONS_FILE}.bak"
+
+    print_success "Versions appended to: ${VERSIONS_FILE}"
 }
 
 # ============================================================================
