@@ -43,32 +43,32 @@ GITOPS_DIR="${SCRIPT_DIR}/assets/1_gitops"
 # ============================================================================
 
 print_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    echo "${BLUE}[INFO]${NC} $1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    echo "${GREEN}[SUCCESS]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    echo "${YELLOW}[WARNING]${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    echo "${RED}[ERROR]${NC} $1"
 }
 
 print_header() {
     echo ""
-    echo -e "${CYAN}========================================"
-    echo -e "$1"
-    echo -e "========================================${NC}"
+    echo "${CYAN}========================================"
+    echo "$1"
+    echo "========================================${NC}"
     echo ""
 }
 
 print_step() {
     echo ""
-    echo -e "${CYAN}>>> $1${NC}"
+    echo "${CYAN}>>> $1${NC}"
     echo ""
 }
 
@@ -228,7 +228,7 @@ run_restore_github_remote() {
 display_final_summary() {
     print_header "Complete Setup Summary"
 
-    echo -e "${GREEN}All setup steps completed successfully!${NC}"
+    echo "${GREEN}All setup steps completed successfully!${NC}"
     echo ""
     echo "What was installed:"
     echo "  ✓ OpenShift GitOps (ArgoCD)"
@@ -288,7 +288,7 @@ trap 'error_handler ${LINENO}' ERR
 main() {
     print_header "OpenShift Playground Complete Setup"
 
-    echo -e "${CYAN}This script will set up the complete OpenShift playground environment.${NC}"
+    echo "${CYAN}This script will set up the complete OpenShift playground environment.${NC}"
     echo ""
     echo "The following steps will be executed:"
     echo "  1. Initial infrastructure setup (Gitea, GitOps)"
