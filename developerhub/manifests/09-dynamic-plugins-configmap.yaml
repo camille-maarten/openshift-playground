@@ -8,30 +8,12 @@ metadata:
 data:
   dynamic-plugins.yaml: |
     # Dynamic Plugins Configuration for Red Hat Developer Hub
-    # This configuration enables caching of dynamic plugins
+    # This configuration includes default plugins plus additional enabled plugins
 
     includes:
       - dynamic-plugins.default.yaml
 
     plugins:
-      # Enable plugin caching
-      - package: ./dynamic-plugins/dist/backstage-plugin-cache
-        disabled: false
-        pluginConfig:
-          cache:
-            # Enable caching for dynamic plugins
-            enabled: true
-            # Cache TTL in seconds (24 hours)
-            ttl: 86400
-            # Cache store type (memory or redis)
-            store: memory
-            # Memory cache configuration
-            memory:
-              # Maximum number of items in cache
-              max: 500
-              # Maximum age of items in milliseconds (24 hours)
-              maxAge: 86400000
-
       # Kubernetes plugin for viewing cluster resources
       - package: ./dynamic-plugins/dist/backstage-plugin-kubernetes
         disabled: false
