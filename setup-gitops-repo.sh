@@ -296,6 +296,10 @@ update_argocd_repo_urls() {
             sed -i.bak "s|repoURL:.*github.com.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
             sed -i.bak "s|repoURL:.*YOUR_ORG/YOUR_REPO.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
 
+            # Fix the path field - remove assets/1_gitops/ prefix since we're pushing from that directory
+            # The repository root in Gitea IS assets/1_gitops/, so paths should be relative to that
+            sed -i.bak "s|path: assets/1_gitops/|path: |g" "$file"
+
             # Remove backup files
             rm -f "${file}.bak"
 

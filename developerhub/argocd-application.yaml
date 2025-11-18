@@ -10,7 +10,7 @@ spec:
     # Update this to point to your Git repository
     repoURL: https://gitea-gitea.apps.cluster-g44r2.g44r2.sandbox5397.opentlc.com/admin/playground-gitops.git
     targetRevision: main
-    path: assets/1_gitops/developerhub/manifests
+    path: developerhub/manifests
 
   destination:
     server: https://kubernetes.default.svc
