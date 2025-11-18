@@ -29,19 +29,19 @@ NC='\033[0m' # No Color
 
 # Function to print colored output
 print_info() {
-    echo -e "${BLUE}ℹ ${NC} $1"
+    echo "${BLUE}ℹ ${NC} $1"
 }
 
 print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo "${GREEN}✓${NC} $1"
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+    echo "${RED}✗${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo "${YELLOW}⚠${NC} $1"
 }
 
 # Get the directory where this script is located
@@ -72,9 +72,9 @@ echo ""
 print_info "Starting complete installation..."
 echo ""
 
-# Run install.sh with automatic "yes" responses
-# First "1" for confirming installation
-printf "1\n" | bash "${SCRIPT_DIR}/install.sh"
+# Run install.sh with automatic responses
+# Input "1" to select Gitea option
+echo "1" | bash "${SCRIPT_DIR}/install.sh"
 
 # Check if installation was successful
 if [ $? -eq 0 ]; then
