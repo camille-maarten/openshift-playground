@@ -266,6 +266,47 @@ EOF
 }
 
 # ============================================================================
+# UPDATE ARGOCD APPLICATION REPO URLS
+# ============================================================================
+
+update_argocd_repo_urls() {
+    print_header "Updating ArgoCD Application Repository URLs"
+
+    # Target repository URL (without credentials)
+    TARGET_REPO_URL="https://${GITEA_ROUTE}/${GITEA_ADMIN_USER}/${REPO_NAME}.git"
+
+    print_info "Target repository URL: ${TARGET_REPO_URL}"
+
+    # Find all argocd-application.yaml files
+    ARGOCD_APP_FILES=$(find . -type f -name "argocd-application.yaml" 2>/dev/null)
+
+    if [ -z "$ARGOCD_APP_FILES" ]; then
+        print_warning "No argocd-application.yaml files found"
+        return 0
+    fi
+
+    # Update each file
+    FILE_COUNT=0
+    while IFS= read -r file; do
+        if [ -f "$file" ]; then
+            print_info "Updating: $file"
+
+            # Use sed to replace the placeholder URL with the actual Gitea URL
+            # This handles both GitHub placeholder and any existing URLs
+            sed -i.bak "s|repoURL:.*github.com.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
+            sed -i.bak "s|repoURL:.*YOUR_ORG/YOUR_REPO.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
+
+            # Remove backup files
+            rm -f "${file}.bak"
+
+            FILE_COUNT=$((FILE_COUNT + 1))
+        fi
+    done <<< "$ARGOCD_APP_FILES"
+
+    print_success "Updated ${FILE_COUNT} ArgoCD Application manifest(s)"
+}
+
+# ============================================================================
 # ADD GIT REMOTE
 # ============================================================================
 
@@ -347,9 +388,11 @@ display_summary() {
     echo ""
     echo "Next Steps:"
     echo "  1. Access the repository in Gitea: ${GITEA_URL}/${GITEA_ADMIN_USER}/${REPO_NAME}"
-    echo "  2. Configure ArgoCD Applications to use this repository"
-    echo "  3. Update ArgoCD Application manifests with the correct repoURL:"
-    echo "     repoURL: ${GITEA_URL}/${GITEA_ADMIN_USER}/${REPO_NAME}.git"
+    echo "  2. Use deploy-to-argocd.sh to create ArgoCD Applications"
+    echo "  3. ArgoCD will automatically sync from: ${GITEA_URL}/${GITEA_ADMIN_USER}/${REPO_NAME}.git"
+    echo ""
+    echo "Note: All argocd-application.yaml files have been automatically updated"
+    echo "      with the correct Gitea repository URL."
     echo ""
 
     print_success "GitOps repository setup complete!"
@@ -369,6 +412,7 @@ main() {
     check_repository_exists
     create_repository
     setup_local_repo
+    update_argocd_repo_urls
     add_git_remote
     commit_and_push
     display_summary

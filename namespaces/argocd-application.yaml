@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: developer-hub
+  name: playground-namespaces
   namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
 
@@ -10,11 +12,11 @@ spec:
     # Update this to point to your Git repository
     repoURL: https://gitea-gitea.apps.cluster-g44r2.g44r2.sandbox5397.opentlc.com/admin/playground-gitops.git
     targetRevision: main
-    path: assets/1_gitops/developerhub/manifests
+    path: namespaces/manifests
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: rhdh
+    namespace: default
 
   syncPolicy:
     automated:
@@ -22,18 +24,10 @@ spec:
       selfHeal: true
       allowEmpty: false
     syncOptions:
-      - CreateNamespace=true
-      - RespectIgnoreDifferences=true
+      - CreateNamespace=false
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
-
-  # Health assessment for custom resources
-  ignoreDifferences:
-    - group: apps
-      kind: Deployment
-      jsonPointers:
-        - /spec/replicas
