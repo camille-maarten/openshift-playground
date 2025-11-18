@@ -5,3 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: rhdh
     app.kubernetes.io/component: developer-hub
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
