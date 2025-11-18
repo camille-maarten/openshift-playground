@@ -31,15 +31,6 @@ data:
           user: ${POSTGRES_USER}
           password: ${POSTGRES_PASSWORD}
 
-    # Enable dynamic plugin caching
-    dynamicPlugins:
-      frontend:
-        # Enable caching for dynamic plugins
-        backstage.plugin-cache:
-          enabled: true
-          # Cache plugins for 24 hours
-          maxAge: 86400
-
     # Permission framework configuration
     permission:
       enabled: true

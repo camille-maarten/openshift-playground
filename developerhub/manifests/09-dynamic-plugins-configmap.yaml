@@ -8,24 +8,7 @@ metadata:
 data:
   dynamic-plugins.yaml: |
     # Dynamic Plugins Configuration for Red Hat Developer Hub
-    # This configuration includes default plugins plus additional enabled plugins
+    # Uses default configuration from the RHDH image
 
     includes:
       - dynamic-plugins.default.yaml
-
-    plugins:
-      # Kubernetes plugin for viewing cluster resources
-      - package: ./dynamic-plugins/dist/backstage-plugin-kubernetes
-        disabled: false
-
-      # Kubernetes backend plugin
-      - package: ./dynamic-plugins/dist/backstage-plugin-kubernetes-backend-dynamic
-        disabled: false
-
-      # TechDocs plugin for documentation
-      - package: ./dynamic-plugins/dist/backstage-plugin-techdocs
-        disabled: false
-
-      # TechDocs backend plugin
-      - package: ./dynamic-plugins/dist/backstage-plugin-techdocs-backend-dynamic
-        disabled: false
