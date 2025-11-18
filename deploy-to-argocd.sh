@@ -386,6 +386,231 @@ sync_applications() {
 }
 
 # ============================================================================
+# CREATE ENVIRONMENT CONFIGURATION FILE
+# ============================================================================
+
+create_environment_config() {
+    print_header "Creating Environment Configuration"
+
+    # Determine project root (go up two directories from assets/1_gitops)
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+    INFO_DIR="${PROJECT_ROOT}/info"
+
+    # Create info directory if it doesn't exist
+    mkdir -p "${INFO_DIR}"
+
+    print_info "Collecting platform component versions..."
+
+    # Get ArgoCD/GitOps version
+    GITOPS_VERSION=$(oc get csv -n ${ARGOCD_NAMESPACE} -o json 2>/dev/null | \
+        jq -r '.items[] | select(.spec.displayName | contains("GitOps")) | .spec.version' 2>/dev/null || echo "N/A")
+
+    # Get RHDH Operator version
+    RHDH_OPERATOR_VERSION=$(oc get csv -n rhdh -o json 2>/dev/null | \
+        jq -r '.items[] | select(.spec.displayName | contains("Red Hat Developer Hub")) | .spec.version' 2>/dev/null || echo "N/A")
+
+    # Get RHDH instance version (from Backstage CR)
+    RHDH_IMAGE=$(oc get backstage developer-hub -n rhdh -o jsonpath='{.status.conditions[?(@.type=="Deployed")].message}' 2>/dev/null | \
+        grep -oP 'image.*' || echo "N/A")
+
+    # Get AMQ Streams (Kafka) Operator version
+    KAFKA_OPERATOR_VERSION=$(oc get csv -n kafka -o json 2>/dev/null | \
+        jq -r '.items[] | select(.spec.displayName | contains("AMQ Streams") or contains("Strimzi")) | .spec.version' 2>/dev/null || echo "N/A")
+
+    # Get Gitea route
+    GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
+
+    # Get ArgoCD route
+    ARGOCD_ROUTE=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
+
+    # Get Developer Hub route
+    RHDH_ROUTE=$(oc get route -n rhdh -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo "N/A")
+
+    # Create environment_config_platform.md
+    cat > "${INFO_DIR}/environment_config_platform.md" <<EOF
+# Platform Environment Configuration
+**Generated on:** $(date '+%Y-%m-%d %H:%M:%S')
+
+This file contains configuration information for platform components deployed via GitOps.
+
+## Component Versions
+
+\`\`\`
+╔═══════════════════════════╦═══════════════════════════════════════════════════════════╗
+║ Component                 ║ Version / Details                                         ║
+╠═══════════════════════════╬═══════════════════════════════════════════════════════════╣
+║ OpenShift GitOps          ║ ${GITOPS_VERSION}                                         ║
+║ Red Hat Developer Hub     ║                                                           ║
+║   - Operator              ║ ${RHDH_OPERATOR_VERSION}                                  ║
+║   - Instance              ║ ${RHDH_IMAGE}                                             ║
+║ AMQ Streams (Kafka)       ║ ${KAFKA_OPERATOR_VERSION}                                 ║
+╚═══════════════════════════╩═══════════════════════════════════════════════════════════╝
+\`\`\`
+
+## Platform Services
+
+\`\`\`
+╔═══════════════════════════╦═══════════════════════════════════════════════════════════╗
+║ Service                   ║ URL                                                       ║
+╠═══════════════════════════╬═══════════════════════════════════════════════════════════╣
+║ ArgoCD Console            ║ https://${ARGOCD_ROUTE}                                   ║
+║ Red Hat Developer Hub     ║ https://${RHDH_ROUTE}                                     ║
+║ Gitea                     ║ https://${GITEA_ROUTE}                                    ║
+╚═══════════════════════════╩═══════════════════════════════════════════════════════════╝
+\`\`\`
+
+## Access Commands
+
+### ArgoCD Console
+\`\`\`bash
+# Get ArgoCD admin password
+oc get secret openshift-gitops-cluster -n ${ARGOCD_NAMESPACE} -o jsonpath='{.data.admin\.password}' | base64 -d && echo
+
+# Access ArgoCD UI
+echo "https://${ARGOCD_ROUTE}"
+\`\`\`
+
+### Developer Hub
+\`\`\`bash
+# Get Developer Hub URL
+oc get route -n rhdh -o jsonpath='{.items[0].spec.host}' && echo
+
+# Check Developer Hub status
+oc get backstage developer-hub -n rhdh
+oc get pods -n rhdh
+\`\`\`
+
+### Gitea
+\`\`\`bash
+# Access Gitea
+echo "https://${GITEA_ROUTE}"
+
+# Default credentials (from initial setup):
+# Username: admin
+# Password: gitea1234!
+\`\`\`
+
+## ArgoCD Applications
+
+\`\`\`bash
+# List all ArgoCD applications
+oc get applications -n ${ARGOCD_NAMESPACE}
+
+# Check specific application status
+oc get application developer-hub -n ${ARGOCD_NAMESPACE} -o yaml
+oc get application kafka-operator -n ${ARGOCD_NAMESPACE} -o yaml
+oc get application playground-namespaces -n ${ARGOCD_NAMESPACE} -o yaml
+\`\`\`
+
+## Operator Details
+
+### Red Hat Developer Hub Operator
+\`\`\`bash
+# Check operator status
+oc get csv -n rhdh | grep rhdh
+
+# View Backstage custom resource
+oc get backstage -n rhdh
+
+# Check operator logs
+oc logs -n rhdh deployment/rhdh-operator -f
+\`\`\`
+
+### AMQ Streams (Kafka) Operator
+\`\`\`bash
+# Check operator status
+oc get csv -n kafka | grep amq-streams
+
+# List Kafka custom resources
+oc get kafka -n kafka
+
+# Check operator logs
+oc logs -n kafka deployment/strimzi-cluster-operator -f
+\`\`\`
+
+## GitOps Repository
+
+\`\`\`bash
+# Repository URL
+echo "https://${GITEA_ROUTE}/admin/playground-gitops.git"
+
+# Clone repository (if using HTTPS)
+git clone https://${GITEA_ROUTE}/admin/playground-gitops.git
+
+# View repository structure
+cd playground-gitops
+tree -L 2
+\`\`\`
+
+## Troubleshooting
+
+### ArgoCD Application Issues
+\`\`\`bash
+# Check application sync status
+argocd app get <app-name>
+
+# Force sync
+argocd app sync <app-name>
+
+# View application logs
+oc logs -n ${ARGOCD_NAMESPACE} deployment/openshift-gitops-application-controller
+\`\`\`
+
+### Developer Hub Issues
+\`\`\`bash
+# Check pod status
+oc get pods -n rhdh
+
+# View pod logs
+oc logs -n rhdh -l app.kubernetes.io/name=backstage
+
+# Check PostgreSQL
+oc get pods -n rhdh -l app=postgres
+oc logs -n rhdh deployment/postgres
+\`\`\`
+
+### Kafka Operator Issues
+\`\`\`bash
+# Check operator pod
+oc get pods -n kafka -l name=strimzi-cluster-operator
+
+# View operator logs
+oc logs -n kafka deployment/strimzi-cluster-operator
+\`\`\`
+
+## Additional Resources
+
+- OpenShift GitOps Documentation: https://docs.openshift.com/gitops/latest/
+- Red Hat Developer Hub Documentation: https://developers.redhat.com/rhdh
+- AMQ Streams Documentation: https://access.redhat.com/documentation/en-us/red_hat_amq_streams/
+- ArgoCD Official Documentation: https://argo-cd.readthedocs.io/
+
+## Security Notes
+
+**Important:** This configuration file contains cluster-specific information. The default credentials listed are for development/demo purposes only.
+
+### Production Recommendations:
+1. Change all default passwords immediately
+2. Configure proper authentication (OAuth, SSO, etc.)
+3. Enable TLS/HTTPS for all services
+4. Implement proper RBAC policies
+5. Use secrets management solutions (e.g., External Secrets Operator)
+6. Regular security audits and updates
+
+### Changing Default Credentials
+
+For detailed instructions on changing credentials, refer to:
+- ArgoCD: Use OpenShift OAuth or update admin password
+- Gitea: Change via Gitea admin UI
+- Developer Hub: Configure via Backstage app-config
+
+EOF
+
+    print_success "Environment configuration saved to: ${INFO_DIR}/environment_config_platform.md"
+}
+
+# ============================================================================
 # DISPLAY SUMMARY
 # ============================================================================
 
@@ -415,6 +640,9 @@ display_summary() {
     echo "  argocd app get playground-namespaces"
     echo "  argocd app get kafka-operator"
     echo "  argocd app get developer-hub"
+    echo ""
+    echo "Platform Configuration:"
+    echo "  Check info/environment_config_platform.md for component versions and access details"
     echo ""
 
     print_success "ArgoCD deployment complete!"
@@ -480,6 +708,9 @@ main() {
 
     # Sync applications
     sync_applications
+
+    # Create environment configuration file
+    create_environment_config
 
     # Display summary
     display_summary
