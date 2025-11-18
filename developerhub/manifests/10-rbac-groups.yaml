@@ -1,0 +1,29 @@
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: rhdh-platform-admins
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: rhdh-technical-leads
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: rhdh-developers
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: rhdh-testers
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  name: rhdh-product-owners
+users: []
