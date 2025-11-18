@@ -469,9 +469,17 @@ print_info "  Installation Summary"
 print_info "==================================================================="
 echo ""
 
-# Get ArgoCD URL and version
+# Get ArgoCD URL and versions
 ARGOCD_URL=$(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available yet")
-ARGOCD_VERSION=$(oc get csv -n openshift-gitops 2>/dev/null | grep openshift-gitops-operator | awk '{print $1}' | cut -d'v' -f2 || echo "Unknown")
+ARGOCD_OPERATOR_VERSION=$(oc get csv -n openshift-gitops 2>/dev/null | grep openshift-gitops-operator | awk '{print $1}' | cut -d'v' -f2 || echo "Unknown")
+
+# Get ArgoCD core version from the running pod
+ARGOCD_POD=$(oc get pod -n openshift-gitops -l app.kubernetes.io/name=openshift-gitops-server -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [ -n "$ARGOCD_POD" ]; then
+    ARGOCD_CORE_VERSION=$(oc exec -n openshift-gitops $ARGOCD_POD -- argocd version --client --short 2>/dev/null | head -1 | awk '{print $2}' || echo "Unknown")
+else
+    ARGOCD_CORE_VERSION="Unknown"
+fi
 
 # Get Gitea versions if installed
 if [ "$INSTALL_GITEA" = true ]; then
@@ -484,7 +492,8 @@ echo "ArgoCD Access Information"
 echo "=========================================="
 echo ""
 echo "ArgoCD URL: https://${ARGOCD_URL}"
-echo "ArgoCD Version: ${ARGOCD_VERSION}"
+echo "OpenShift GitOps Operator Version: ${ARGOCD_OPERATOR_VERSION}"
+echo "ArgoCD Core Version: ${ARGOCD_CORE_VERSION}"
 echo ""
 echo "Login Options:"
 echo "1. OpenShift OAuth (Recommended):"
@@ -553,7 +562,8 @@ echo "╠═══════════════╦═══════�
 echo "║ Service       ║ Details                                                           ║"
 echo "╠═══════════════╬═══════════════════════════════════════════════════════════════════╣"
 echo "║ ArgoCD        ║                                                                   ║"
-echo "║               ║ Version:  ${ARGOCD_VERSION}                                       "
+echo "║               ║ Operator Version: ${ARGOCD_OPERATOR_VERSION}                      "
+echo "║               ║ Core Version:     ${ARGOCD_CORE_VERSION}                          "
 echo "║               ║ Route:    https://${ARGOCD_URL}"
 echo "║               ║ Username: admin                                                   ║"
 echo "║               ║ Password: argocd1234!                                            ║"
@@ -617,7 +627,8 @@ cat > "${INFO_DIR}/versions.csv" <<EOF
 # This file contains the installed component versions for this environment
 # Generated on: $(date '+%Y-%m-%d %H:%M:%S')
 component,version
-argocd,${ARGOCD_VERSION}
+argocd_operator,${ARGOCD_OPERATOR_VERSION}
+argocd_core,${ARGOCD_CORE_VERSION}
 EOF
 
 # Append Gitea version if installed
@@ -643,10 +654,11 @@ This file contains the access credentials and configuration details for your Ope
 ║ Service       ║ Details                                                           ║
 ╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
 ║ ArgoCD        ║                                                                   ║
-║               ║ Version:  ${ARGOCD_VERSION}                                       "
-║               ║ Route:    https://${ARGOCD_URL}
-║               ║ Username: admin                                                   ║
-║               ║ Password: argocd1234!                                             ║
+║               ║ Operator Version: ${ARGOCD_OPERATOR_VERSION}                      "
+║               ║ Core Version:     ${ARGOCD_CORE_VERSION}                          "
+║               ║ Route:            https://${ARGOCD_URL}
+║               ║ Username:         admin                                           ║
+║               ║ Password:         argocd1234!                                     ║
 ║               ║ (or use 'Log in via OpenShift')                                   ║
 EOF
 
