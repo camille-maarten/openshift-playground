@@ -245,6 +245,13 @@ spec:
       kind: Deployment
       jsonPointers:
         - /spec/replicas
+    - group: rhdh.redhat.com
+      kind: Backstage
+      jsonPointers:
+        - /spec/monitoring
+        - /spec/application/imagePullPolicy
+        - /spec/application/resources
+        - /status
 EOF
 
     oc apply -f "${TMP_DIR}/developerhub-app.yaml"

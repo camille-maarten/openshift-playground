@@ -6,7 +6,17 @@
 
 set -e
 
-GITEA_URL="https://gitea-gitea.apps.cluster-g44r2.g44r2.sandbox5397.opentlc.com"
+# Get Gitea URL from route
+echo "Retrieving Gitea URL from cluster..."
+GITEA_URL=$(oc get route gitea -n gitea -o jsonpath='https://{.spec.host}')
+if [ -z "$GITEA_URL" ]; then
+  echo "✗ Error: Could not retrieve Gitea route. Is Gitea installed?"
+  echo "  Check with: oc get route gitea -n gitea"
+  exit 1
+fi
+echo "✓ Using Gitea URL: ${GITEA_URL}"
+echo ""
+
 REPO_PATH="admin/playground-gitops"
 MANIFEST_PATH="developerhub/manifests"
 
