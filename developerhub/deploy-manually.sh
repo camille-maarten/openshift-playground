@@ -15,6 +15,12 @@ echo "  Manual Developer Hub Deployment"
 echo "================================================"
 echo ""
 
+# Wave -1: ArgoCD RBAC (if using ArgoCD)
+echo "Step 0: Setting up ArgoCD RBAC permissions..."
+curl -k -s "${GITEA_URL}/api/v1/repos/${REPO_PATH}/raw/${MANIFEST_PATH}/00-argocd-rbac.yaml" -u "admin:gitea1234!" | oc apply -f -
+echo "✓ ArgoCD RBAC configured"
+echo ""
+
 # Wave 0: Namespace and OperatorGroup
 echo "Step 1: Creating namespace and operator group..."
 curl -k -s "${GITEA_URL}/api/v1/repos/${REPO_PATH}/raw/${MANIFEST_PATH}/01-namespace.yaml" -u "admin:gitea1234!" | oc apply -f -
