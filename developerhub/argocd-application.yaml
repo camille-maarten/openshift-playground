@@ -37,3 +37,10 @@ spec:
       kind: Deployment
       jsonPointers:
         - /spec/replicas
+    - group: rhdh.redhat.com
+      kind: Backstage
+      jsonPointers:
+        - /spec/monitoring
+        - /spec/application/imagePullPolicy
+        - /spec/application/resources
+        - /status
