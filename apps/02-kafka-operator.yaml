@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-operator
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    # TEMPLATE: Update this to point to your Git repository
+    # The deploy-to-argocd.sh script will automatically set this from the cluster's Gitea route
+    # If applying manually, replace https://gitea-gitea.apps.cluster-2qd4b.2qd4b.sandbox887.opentlc.com/admin/playground-gitops with your cluster's Gitea URL:
+    #   oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'
+    repoURL: https://gitea-gitea.apps.cluster-2qd4b.2qd4b.sandbox887.opentlc.com/admin/playground-gitops/admin/playground-gitops.git
+    targetRevision: main
+    path: kafka/manifests
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kafka
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

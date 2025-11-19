@@ -277,11 +277,12 @@ update_argocd_repo_urls() {
 
     print_info "Target repository URL: ${TARGET_REPO_URL}"
 
-    # Find all argocd-application.yaml files
-    ARGOCD_APP_FILES=$(find . -type f -name "argocd-application.yaml" 2>/dev/null)
+    # Find all ArgoCD Application YAML files
+    # This includes playground-apps.yaml and all files in the apps/ directory
+    ARGOCD_APP_FILES=$(find . -type f \( -name "playground-apps.yaml" -o -path "*/apps/*.yaml" \) 2>/dev/null)
 
     if [ -z "$ARGOCD_APP_FILES" ]; then
-        print_warning "No argocd-application.yaml files found"
+        print_warning "No ArgoCD Application YAML files found"
         return 0
     fi
 
@@ -291,8 +292,10 @@ update_argocd_repo_urls() {
         if [ -f "$file" ]; then
             print_info "Updating: $file"
 
-            # Use sed to replace the placeholder URL with the actual Gitea URL
-            # This handles both GitHub placeholder and any existing URLs
+            # Replace GITEA_URL placeholder with actual Gitea URL
+            sed -i.bak "s|GITEA_URL|${TARGET_REPO_URL%%.git}|g" "$file"
+
+            # Also handle any legacy patterns
             sed -i.bak "s|repoURL:.*github.com.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
             sed -i.bak "s|repoURL:.*YOUR_ORG/YOUR_REPO.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
 
@@ -352,10 +355,15 @@ commit_and_push() {
         git commit -m "Initial commit: GitOps manifests for OpenShift playground
 
 This commit includes:
+- App-of-Apps pattern (apps/ directory with child applications)
 - Developer Hub manifests and configuration
 - Kafka operator installation manifests
 - Playground namespace with resource quotas and network policies
 - Documentation for all components
+
+App-of-Apps Structure:
+- playground-apps.yaml: Parent application that manages all child apps
+- apps/: Directory containing child application definitions
 
 Generated on: $(date '+%Y-%m-%d %H:%M:%S')"
     fi
