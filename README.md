@@ -81,21 +81,39 @@ This project uses **two separate git repositories**:
 
 ### Before Committing to GitHub
 
-**IMPORTANT**: Before pushing changes to GitHub, you must restore the GitHub remote configuration.
+**IMPORTANT**: Before pushing changes to GitHub, you must restore the GitHub remote configuration and URL placeholders.
 
-Run this script to ensure you're working with the correct repository:
+#### Option 1: Complete Cleanup (Recommended)
+
+Run the cleanup script to automatically restore everything:
 
 ```bash
-./assets/1_gitops/restore-github-remote.sh
+./assets/1_gitops/cleanup-for-github.sh
 ```
 
 This script:
-- Works with the main repository (not the GitOps subdirectory)
+- Restores `GITEA_URL` placeholders in ArgoCD Application manifests
 - Removes any Gitea remote from the main repository
 - Ensures `origin` points to GitHub
-- Verifies you're on the correct branch
+- Provides step-by-step guidance for committing
 
-**Always check your current branch before pushing:**
+#### Option 2: Manual Cleanup
+
+If you prefer to run steps individually:
+
+1. **Restore URL placeholders** (if you ran `setup-gitops-repo.sh`):
+   ```bash
+   ./assets/1_gitops/restore-urls.sh
+   ```
+
+2. **Restore GitHub remote**:
+   ```bash
+   ./assets/1_gitops/restore-github-remote.sh
+   ```
+
+#### Always Verify Before Pushing
+
+**Check your current branch and repository before pushing:**
 
 ```bash
 git branch           # Check current branch

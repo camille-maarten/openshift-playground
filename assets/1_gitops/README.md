@@ -25,23 +25,42 @@ This is **separate** from the main GitHub repository at the project root (`opens
 
 ### Before Committing to GitHub
 
-**CRITICAL**: If you want to commit changes to GitHub (not Gitea), you MUST:
+**CRITICAL**: If you want to commit changes to GitHub (not Gitea), you MUST run cleanup scripts first.
 
-1. **Run the restore script**:
+#### Option 1: Complete Cleanup (Recommended)
+
+Run the **all-in-one cleanup script**:
+
+```bash
+./assets/1_gitops/cleanup-for-github.sh
+```
+
+This script automatically:
+- ✓ Restores `GITEA_URL` placeholders in ArgoCD Application manifests
+- ✓ Removes Gitea remote from main repository
+- ✓ Ensures `origin` points to GitHub
+- ✓ Provides clear next steps
+
+#### Option 2: Manual Step-by-Step
+
+If you prefer to run steps individually:
+
+1. **Restore URL placeholders** (undoes `setup-gitops-repo.sh` URL replacements):
+   ```bash
+   ./assets/1_gitops/restore-urls.sh
+   ```
+
+2. **Restore GitHub remote**:
    ```bash
    ./assets/1_gitops/restore-github-remote.sh
    ```
 
-2. **Check your branch**:
+3. **Verify and commit**:
    ```bash
    cd /path/to/openshift-playground  # Navigate to repository root
    git branch                         # Verify current branch
    git status                         # Confirm you're in main repo
    git remote -v                      # Verify origin points to GitHub
-   ```
-
-3. **Then commit and push**:
-   ```bash
    git add .
    git commit -m "Your commit message"
    git push origin <your-branch>
@@ -56,11 +75,19 @@ This is **separate** from the main GitHub repository at the project root (`opens
 
 ### Quick Reference
 
-| Action | Repository to Use | Command |
-|--------|------------------|---------|
-| Push to Gitea for ArgoCD | GitOps directory | `cd assets/1_gitops && ./setup-gitops-repo.sh` |
-| Push to GitHub for development | Main repository | `cd <repo-root> && ./assets/1_gitops/restore-github-remote.sh && git push` |
+| Action | Repository/Scope | Command |
+|--------|-----------------|---------|
+| **Deploy to Cluster** | | |
+| Upload manifests to Gitea | GitOps directory | `./assets/1_gitops/setup-gitops-repo.sh` |
+| Deploy to ArgoCD | GitOps directory | `./assets/1_gitops/deploy-to-argocd.sh` |
+| Complete upload + deploy | GitOps directory | `./assets/1_gitops/upload-and-deploy.sh` |
+| **Prepare for GitHub** | | |
+| Complete cleanup (recommended) | Main repository | `./assets/1_gitops/cleanup-for-github.sh` |
+| Restore URL placeholders only | GitOps directory | `./assets/1_gitops/restore-urls.sh` |
+| Restore GitHub remote only | Main repository | `./assets/1_gitops/restore-github-remote.sh` |
+| **Verify Configuration** | | |
 | Check current repository | Either | `git remote -v` |
+| Check ArgoCD applications | Cluster | `oc get applications -n openshift-gitops` |
 
 ---
 
@@ -68,22 +95,30 @@ This is **separate** from the main GitHub repository at the project root (`opens
 
 ```
 1_gitops/
-├── developerhub/          # Red Hat Developer Hub installation
-│   ├── manifests/         # RHDH operator and instance manifests
+├── developerhub/              # Red Hat Developer Hub installation
+│   ├── manifests/             # RHDH operator and instance manifests
 │   ├── argocd-application.yaml
 │   └── README.md
-├── kafka/                 # AMQ Streams (Kafka) operator installation
-│   ├── manifests/         # Kafka operator manifests
+├── kafka/                     # AMQ Streams (Kafka) operator installation
+│   ├── manifests/             # Kafka operator manifests
 │   ├── argocd-application.yaml
 │   └── README.md
-├── namespaces/            # Namespace definitions and configurations
-│   ├── manifests/         # Playground namespace and policies
+├── namespaces/                # Namespace definitions and configurations
+│   ├── manifests/             # Playground namespace and policies
 │   ├── argocd-application.yaml
 │   └── README.md
-├── setup-gitops-repo.sh   # Script to upload manifests to Gitea
-├── deploy-to-argocd.sh    # Script to deploy ArgoCD Applications
-├── upload_and_deploy.sh   # Complete workflow: upload + deploy (recommended)
-└── README.md              # This file
+├── apps/                      # App-of-Apps child application definitions
+│   ├── 01-playground-namespaces.yaml
+│   ├── 02-kafka-operator.yaml
+│   └── 03-developer-hub.yaml
+├── playground-apps.yaml       # App-of-Apps parent application
+├── setup-gitops-repo.sh       # Upload manifests to Gitea (replaces GITEA_URL with actual URL)
+├── deploy-to-argocd.sh        # Deploy ArgoCD Applications
+├── upload-and-deploy.sh       # Complete workflow: upload + deploy
+├── restore-urls.sh            # Restore GITEA_URL placeholders (undo setup-gitops-repo.sh)
+├── restore-github-remote.sh   # Restore GitHub remote in main repository
+├── cleanup-for-github.sh      # Complete cleanup (runs restore-urls + restore-github-remote)
+└── README.md                  # This file
 ```
 
 ## Components
