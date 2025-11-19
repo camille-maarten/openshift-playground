@@ -3,12 +3,15 @@
 # ============================================================================
 # Restore GitHub Remote Script
 # ============================================================================
-# This script restores the GitHub repository as the git remote, replacing
-# the Gitea remote that was added during GitOps setup.
+# This script restores the GitHub repository as the git remote in the main
+# openshift-playground repository.
 #
-# The Gitea remote is useful for ArgoCD to pull manifests from within the
-# cluster, but for development and pushing changes to the main repository,
-# you need to restore the GitHub remote.
+# Note: The setup-gitops-repo.sh script creates a separate git repository
+# in assets/1_gitops/.git for pushing to Gitea. This script works with the
+# MAIN repository (openshift-playground), not that subdirectory repository.
+#
+# The script removes any Gitea remote and ensures the origin remote points
+# to GitHub for development and pushing changes.
 #
 # Usage:
 #   ./restore-github-remote.sh
@@ -64,16 +67,17 @@ print_header() {
 main() {
     print_header "Restore GitHub Remote"
 
-    # Navigate to script directory (assets/1_gitops)
+    # Navigate to parent repository (openshift-playground), not the gitops subdirectory
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    cd "${SCRIPT_DIR}"
+    PARENT_REPO="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+    cd "${PARENT_REPO}"
 
-    print_info "Current directory: ${SCRIPT_DIR}"
+    print_info "Working with main repository at: ${PARENT_REPO}"
 
     # Check if we're in a git repository
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         print_error "Not in a git repository"
-        print_info "This script must be run from the GitOps directory"
+        print_info "This script must be run from within the openshift-playground repository"
         exit 1
     fi
 
@@ -126,17 +130,20 @@ main() {
     git remote -v
 
     print_header "Summary"
-    echo "Git remote configuration:"
+    echo "Git remote configuration updated in main repository:"
+    echo "  - Working directory: ${PARENT_REPO}"
     echo "  - Gitea remote removed (if it existed)"
     echo "  - GitHub remote configured as 'origin'"
     echo "  - Repository: ${GITHUB_REPO}"
     echo ""
     echo "You can now push to GitHub using:"
+    echo "  cd ${PARENT_REPO}"
     echo "  git push origin <branch-name>"
     echo ""
-    echo "Note: The ArgoCD applications will continue to pull from Gitea"
-    echo "      (configured in the cluster). This change only affects local"
-    echo "      git operations for development."
+    echo "Note: The local git repository in assets/1_gitops/.git is separate"
+    echo "      and used only for pushing to Gitea. This script updates the"
+    echo "      main repository remote. ArgoCD applications will continue to"
+    echo "      pull from Gitea (configured in the cluster)."
     echo ""
 
     print_success "GitHub remote restoration complete!"
