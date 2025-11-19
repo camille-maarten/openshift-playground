@@ -292,8 +292,10 @@ update_argocd_repo_urls() {
         if [ -f "$file" ]; then
             print_info "Updating: $file"
 
-            # Replace GITEA_URL placeholder with actual Gitea URL
-            sed -i.bak "s|GITEA_URL|${TARGET_REPO_URL%%.git}|g" "$file"
+            # Replace GITEA_URL placeholder with base Gitea URL (without repo path)
+            # Templates include the repo path, so we only replace with base URL
+            GITEA_BASE_URL="https://${GITEA_ROUTE}"
+            sed -i.bak "s|GITEA_URL|${GITEA_BASE_URL}|g" "$file"
 
             # Also handle any legacy patterns
             sed -i.bak "s|repoURL:.*github.com.*|repoURL: ${TARGET_REPO_URL}|g" "$file"

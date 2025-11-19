@@ -156,8 +156,10 @@ create_playground_app_of_apps() {
         exit 1
     fi
 
-    # Replace GITEA_URL in the template
-    sed "s|GITEA_URL|${REPO_URL}|g" "${TEMPLATE_FILE}" > "${TMP_DIR}/playground-app-of-apps.yaml"
+    # Replace GITEA_URL in the template with just the base URL (without the repo path)
+    # The template includes /admin/playground-gitops.git so we just need the base
+    GITEA_BASE_URL="https://${GITEA_ROUTE}"
+    sed "s|GITEA_URL|${GITEA_BASE_URL}|g" "${TEMPLATE_FILE}" > "${TMP_DIR}/playground-app-of-apps.yaml"
 
     print_info "Applying App-of-Apps manifest..."
     oc apply -f "${TMP_DIR}/playground-app-of-apps.yaml"
