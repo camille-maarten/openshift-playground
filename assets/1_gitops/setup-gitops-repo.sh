@@ -181,31 +181,56 @@ create_repository() {
 
     print_header "Creating Repository"
 
-    # Create repository via Gitea API
-    RESPONSE=$(curl -k -s -w "\n%{http_code}" \
-        -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASSWORD}" \
-        -H "Content-Type: application/json" \
-        -X POST \
-        -d "{
-            \"name\": \"${REPO_NAME}\",
-            \"description\": \"GitOps manifests for OpenShift playground\",
-            \"private\": false,
-            \"auto_init\": false,
-            \"default_branch\": \"main\"
-        }" \
-        "${GITEA_API_URL}/user/repos")
+    # Retry logic for repository creation (handle temporary Gitea errors)
+    MAX_RETRIES=3
+    RETRY_DELAY=10
 
-    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-    BODY=$(echo "$RESPONSE" | sed '$d')
+    for attempt in $(seq 1 $MAX_RETRIES); do
+        if [ $attempt -gt 1 ]; then
+            print_info "Retry attempt $attempt/$MAX_RETRIES..."
+            sleep $RETRY_DELAY
+        fi
 
-    if [ "$HTTP_CODE" == "201" ]; then
-        print_success "Repository '${REPO_NAME}' created successfully"
-        REPO_EXISTS=true
-    else
-        print_error "Failed to create repository (HTTP ${HTTP_CODE})"
-        echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
-        exit 1
+        # Create repository via Gitea API
+        RESPONSE=$(curl -k -s -w "\n%{http_code}" \
+            -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            -d "{
+                \"name\": \"${REPO_NAME}\",
+                \"description\": \"GitOps manifests for OpenShift playground\",
+                \"private\": false,
+                \"auto_init\": false,
+                \"default_branch\": \"main\"
+            }" \
+            "${GITEA_API_URL}/user/repos")
+
+        HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+        BODY=$(echo "$RESPONSE" | sed '$d')
+
+        if [ "$HTTP_CODE" == "201" ]; then
+            print_success "Repository '${REPO_NAME}' created successfully"
+            REPO_EXISTS=true
+            return 0
+        elif [ "$HTTP_CODE" == "500" ] && [ $attempt -lt $MAX_RETRIES ]; then
+            print_warning "Gitea returned HTTP 500 (temporary error), retrying..."
+            continue
+        else
+            break
+        fi
+    done
+
+    # If we get here, all retries failed
+    print_error "Failed to create repository (HTTP ${HTTP_CODE})"
+    echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
+
+    if [ "$HTTP_CODE" == "500" ]; then
+        print_warning "Gitea may not be fully initialized. Try restarting the Gitea pod:"
+        print_info "oc delete pod -n gitea -l app.kubernetes.io/name=gitea"
+        print_info "Then wait 30 seconds and retry this script"
     fi
+
+    exit 1
 }
 
 # ============================================================================
