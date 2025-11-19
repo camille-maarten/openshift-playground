@@ -298,14 +298,6 @@ main() {
     echo "Estimated time: 10-15 minutes"
     echo ""
 
-    read -p "Do you want to continue? (y/n) [y]: " CONTINUE
-    CONTINUE=${CONTINUE:-y}
-
-    if [ "$CONTINUE" != "y" ] && [ "$CONTINUE" != "Y" ]; then
-        print_info "Setup cancelled by user"
-        exit 0
-    fi
-
     # Record start time
     START_TIME=$(date +%s)
 
