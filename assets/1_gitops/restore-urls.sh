@@ -83,7 +83,7 @@ main() {
     while IFS= read -r file; do
         if [ -f "$file" ]; then
             # Check if file contains a Gitea URL pattern
-            if grep -q "repoURL:.*https://.*gitea.*playground-gitops.git" "$file" 2>/dev/null; then
+            if grep -q "repoURL:.*https://gitea-gitea.apps.cluster-.*.com.*" "$file" 2>/dev/null; then
                 print_info "Restoring placeholders in: $file"
 
                 # Extract the Gitea base URL from the file
@@ -122,7 +122,7 @@ main() {
         echo "Files are now portable and ready to be committed to GitHub."
         echo ""
         echo "The following pattern was restored:"
-        echo "  Before: repoURL: https://gitea-route.../admin/playground-gitops.git"
+        echo "  Before: repoURL: https://gitea-gitea.apps.cluster-.*.com"
         echo "  After:  repoURL: GITEA_URL/admin/playground-gitops.git"
     fi
 
