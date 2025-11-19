@@ -6,6 +6,64 @@ This directory contains all GitOps manifests for the OpenShift playground enviro
 
 The GitOps approach enables declarative, version-controlled infrastructure and application management. All manifests in this directory are designed to be deployed and managed by ArgoCD, ensuring consistency and auditability.
 
+---
+
+## ⚠️ IMPORTANT: Git Remote Configuration
+
+**WARNING**: The GitOps setup scripts create a **separate git repository** in this directory for Gitea integration.
+
+### Two Git Repositories
+
+When you run `setup-gitops-repo.sh`, it creates a **local git repository** at `assets/1_gitops/.git`:
+
+- **Purpose**: Push manifests to in-cluster Gitea for ArgoCD to sync
+- **Remote**: `gitea` pointing to the cluster's Gitea instance
+- **Scope**: Only this directory (`assets/1_gitops/`)
+- **Lifecycle**: Recreated for each cluster deployment
+
+This is **separate** from the main GitHub repository at the project root (`openshift-playground/.git`).
+
+### Before Committing to GitHub
+
+**CRITICAL**: If you want to commit changes to GitHub (not Gitea), you MUST:
+
+1. **Run the restore script**:
+   ```bash
+   ./assets/1_gitops/restore-github-remote.sh
+   ```
+
+2. **Check your branch**:
+   ```bash
+   cd /path/to/openshift-playground  # Navigate to repository root
+   git branch                         # Verify current branch
+   git status                         # Confirm you're in main repo
+   git remote -v                      # Verify origin points to GitHub
+   ```
+
+3. **Then commit and push**:
+   ```bash
+   git add .
+   git commit -m "Your commit message"
+   git push origin <your-branch>
+   ```
+
+### Why This Matters
+
+- **setup-gitops-repo.sh** creates `assets/1_gitops/.git` and configures the `gitea` remote
+- This is **NOT** the main repository - it's a separate git repo just for Gitea uploads
+- If you try to push from the wrong repository, your changes won't go to GitHub
+- The `restore-github-remote.sh` script navigates to the **parent repository** and ensures `origin` points to GitHub
+
+### Quick Reference
+
+| Action | Repository to Use | Command |
+|--------|------------------|---------|
+| Push to Gitea for ArgoCD | GitOps directory | `cd assets/1_gitops && ./setup-gitops-repo.sh` |
+| Push to GitHub for development | Main repository | `cd <repo-root> && ./assets/1_gitops/restore-github-remote.sh && git push` |
+| Check current repository | Either | `git remote -v` |
+
+---
+
 ## Directory Structure
 
 ```
