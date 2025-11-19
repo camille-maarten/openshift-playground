@@ -602,6 +602,53 @@ For detailed instructions on changing credentials, refer to:
 EOF
 
     print_success "Environment configuration saved to: ${INFO_DIR}/environment_config_platform.md"
+
+    # Append platform operator versions to versions.csv
+    print_info "Appending platform operator versions to versions.csv..."
+
+    VERSIONS_FILE="${INFO_DIR}/versions.csv"
+
+    # Check if versions.csv exists
+    if [ ! -f "${VERSIONS_FILE}" ]; then
+        print_warning "versions.csv not found, creating new file"
+        cat > "${VERSIONS_FILE}" <<CSV_HEADER
+# This file contains the installed component versions for this environment
+# Generated on: $(date '+%Y-%m-%d %H:%M:%S')
+component,version
+CSV_HEADER
+    fi
+
+    # Extract version numbers from the full strings
+    GITOPS_VERSION_NUM=$(echo "$GITOPS_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
+    RHDH_VERSION_NUM=$(echo "$RHDH_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
+    KAFKA_VERSION_NUM=$(echo "$KAFKA_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+-?\d*' | head -1 || echo "N/A")
+
+    # Check if entries already exist and remove them (to avoid duplicates)
+    if grep -q "^rhdh_operator," "${VERSIONS_FILE}"; then
+        # Remove existing RHDH operator entry
+        sed -i.bak '/^rhdh_operator,/d' "${VERSIONS_FILE}"
+    fi
+
+    if grep -q "^kafka_operator," "${VERSIONS_FILE}"; then
+        # Remove existing Kafka operator entry
+        sed -i.bak '/^kafka_operator,/d' "${VERSIONS_FILE}"
+    fi
+
+    # Append new entries
+    if [ "$RHDH_VERSION_NUM" != "N/A" ]; then
+        echo "rhdh_operator,${RHDH_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added RHDH operator version: ${RHDH_VERSION_NUM}"
+    fi
+
+    if [ "$KAFKA_VERSION_NUM" != "N/A" ]; then
+        echo "kafka_operator,${KAFKA_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added Kafka operator version: ${KAFKA_VERSION_NUM}"
+    fi
+
+    # Clean up backup files
+    rm -f "${VERSIONS_FILE}.bak"
+
+    print_success "Versions appended to: ${VERSIONS_FILE}"
 }
 
 # ============================================================================
