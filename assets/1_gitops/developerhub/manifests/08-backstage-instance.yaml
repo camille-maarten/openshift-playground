@@ -1,0 +1,53 @@
+apiVersion: rhdh.redhat.com/v1alpha1
+kind: Backstage
+metadata:
+  name: developer-hub
+  namespace: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  # Application configuration
+  application:
+    # Number of replicas for the Backstage application
+    replicas: 1
+
+    # Image pull policy
+    imagePullPolicy: Always
+
+    # Application configuration from ConfigMap
+    appConfig:
+      mountPath: /opt/app-root/src
+      configMaps:
+        - name: app-config-rhdh
+
+    # Dynamic plugins configuration
+    dynamicPluginsConfigMapName: dynamic-plugins-rhdh
+
+    # Extra environment variables
+    extraEnvs:
+      secrets:
+        - name: rhdh-secrets
+
+    # Extra files (RBAC policy)
+    extraFiles:
+      mountPath: /opt/app-root/src
+      configMaps:
+        - name: rbac-policy
+          key: rbac-policy.yaml
+
+    # Resource limits
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+
+  # Database configuration
+  database:
+    enableLocalDb: false
+
+  # Route configuration
+  # The route will be created automatically by the operator
+  # You may need to adjust the host based on your OpenShift cluster domain

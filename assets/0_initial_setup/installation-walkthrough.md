@@ -140,7 +140,7 @@ Unlike the previous GitLab setup, **no template files need to be copied or edite
   ```
 
 - **Creates Environment Config File**
-  - Saves credentials to `/info/environment_config.md`
+  - Saves credentials to `/info/environment_config_gitops.md`
   - Contains actual URLs for your environment
   - Includes verification commands and next steps
 
@@ -236,7 +236,7 @@ Gitea is significantly faster than the previous GitLab setup!
 - Via ArgoCD CLI: `argocd repo add <repo-url>`
 
 ### Q: Can I change the passwords?
-**A:** Yes! See the "Changing Passwords" section in `/info/environment_config.md` or the main README.
+**A:** Yes! See the "Changing Passwords" section in `/info/environment_config_gitops.md` or the main README.
 
 ### Q: What if Gitea pods fail to start?
 **A:** The script automatically grants the required Security Context Constraints (SCC). If issues persist, check:
@@ -261,7 +261,7 @@ helm list -n gitea
 ### Q: Where are my credentials saved?
 **A:** In two places:
 1. **Terminal output** - Displayed at end of installation
-2. **Environment config file** - `/info/environment_config.md` with your actual URLs
+2. **Environment config file** - `/info/environment_config_gitops.md` with your actual URLs
 
 ---
 
@@ -283,7 +283,7 @@ helm list -n gitea
 If something goes wrong:
 
 1. **Check the documentation**
-   - `/info/environment_config.md` - Your environment details
+   - `/info/environment_config_gitops.md` - Your environment details
    - `assets/0_initial_setup/README.md` - Detailed setup guide
    - `assets/0_initial_setup/QUICK_REFERENCE.md` - Command reference
 
@@ -304,7 +304,7 @@ If something goes wrong:
 
 4. **Reinstall if needed**
    - The script is idempotent - safe to run multiple times
-   - Old `environment_config.md` is automatically removed on each run
+   - Old `environment_config_gitops.md` is automatically removed on each run
 
 ---
 
@@ -312,7 +312,7 @@ If something goes wrong:
 
 After successful installation:
 
-1. ✅ Review the environment config: `/info/environment_config.md`
+1. ✅ Review the environment config: `/info/environment_config_gitops.md`
 2. ✅ Access ArgoCD and Gitea UIs
 3. ✅ Create your first repository (in Gitea) or use existing (from GitHub)
 4. ✅ Create your first ArgoCD application
@@ -321,4 +321,4 @@ After successful installation:
 For detailed guides, see:
 - [Main README](README.md)
 - [Quick Reference Guide](QUICK_REFERENCE.md)
-- [Environment Configuration](/info/environment_config.md)
+- [Environment Configuration](/info/environment_config_gitops.md)

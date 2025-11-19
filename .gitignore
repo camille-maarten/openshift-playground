@@ -37,5 +37,6 @@ replay_pid*
 
 # Ignore any local overrides
 *.local.yaml
-/info/environment_config.md
+/info/environment_config_gitops.md
+/info/environment_config_platform.md
 /info/versions.csv

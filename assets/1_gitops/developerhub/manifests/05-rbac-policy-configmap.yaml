@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  name: rbac-policy
+  namespace: rhdh
+data:
+  rbac-policy.yaml: |
+    # RBAC Policy Configuration for Red Hat Developer Hub
+    # This file defines role-based access control policies for different personas
+
+    # Permission Policies
+    # Format: p, <role>, <resource>, <action>, <effect>
+    # Actions: create, read, update, delete
+    # Effect: allow, deny
+
+    # ============================================================================
+    # PLATFORM ADMIN ROLE
+    # ============================================================================
+    # Full administrative access to all resources
+    p, role:platform-admin, catalog-entity, *, allow
+    p, role:platform-admin, catalog.entity.create, *, allow
+    p, role:platform-admin, catalog.entity.read, *, allow
+    p, role:platform-admin, catalog.entity.refresh, *, allow
+    p, role:platform-admin, catalog.entity.delete, *, allow
+    p, role:platform-admin, scaffolder.action.execute, *, allow
+    p, role:platform-admin, scaffolder.template.parameter.read, *, allow
+    p, role:platform-admin, scaffolder.template.step.read, *, allow
+    p, role:platform-admin, kubernetes.proxy, *, allow
+
+    # ============================================================================
+    # TECHNICAL LEAD ROLE
+    # ============================================================================
+    # Technical leads can manage components and templates
+    p, role:technical-lead, catalog-entity, *, allow
+    p, role:technical-lead, catalog.entity.create, *, allow
+    p, role:technical-lead, catalog.entity.read, *, allow
+    p, role:technical-lead, catalog.entity.refresh, *, allow
+    p, role:technical-lead, catalog.entity.delete, *, allow
+    p, role:technical-lead, scaffolder.action.execute, *, allow
+    p, role:technical-lead, scaffolder.template.parameter.read, *, allow
+    p, role:technical-lead, scaffolder.template.step.read, *, allow
+    p, role:technical-lead, kubernetes.proxy, *, allow
+
+    # ============================================================================
+    # DEVELOPER ROLE
+    # ============================================================================
+    # Developers can create and read resources, execute templates
+    p, role:developer, catalog-entity, *, allow
+    p, role:developer, catalog.entity.create, *, allow
+    p, role:developer, catalog.entity.read, *, allow
+    p, role:developer, catalog.entity.refresh, *, allow
+    p, role:developer, catalog.entity.delete, *, allow
+    p, role:developer, scaffolder.action.execute, *, allow
+    p, role:developer, scaffolder.template.parameter.read, *, allow
+    p, role:developer, scaffolder.template.step.read, *, allow
+    p, role:developer, kubernetes.proxy, *, allow
+
+    # ============================================================================
+    # TESTER ROLE
+    # ============================================================================
+    # Testers can read resources and execute test-related templates
+    p, role:tester, catalog-entity, *, allow
+    p, role:tester, catalog.entity.create, *, allow
+    p, role:tester, catalog.entity.read, *, allow
+    p, role:tester, catalog.entity.refresh, *, allow
+    p, role:tester, catalog.entity.delete, *, allow
+    p, role:tester, scaffolder.action.execute, *, allow
+    p, role:tester, scaffolder.template.parameter.read, *, allow
+    p, role:tester, scaffolder.template.step.read, *, allow
+    p, role:tester, kubernetes.proxy, *, allow
+
+    # ============================================================================
+    # PRODUCT OWNER ROLE
+    # ============================================================================
+    # Product owners can view all resources and create components
+    p, role:product-owner, catalog-entity, *, allow
+    p, role:product-owner, catalog.entity.create, *, allow
+    p, role:product-owner, catalog.entity.read, *, allow
+    p, role:product-owner, catalog.entity.refresh, *, allow
+    p, role:product-owner, catalog.entity.delete, *, allow
+    p, role:product-owner, scaffolder.action.execute, *, allow
+    p, role:product-owner, scaffolder.template.parameter.read, *, allow
+    p, role:product-owner, scaffolder.template.step.read, *, allow
+    p, role:product-owner, kubernetes.proxy, *, allow
+
+    # ============================================================================
+    # GROUP ROLE ASSIGNMENTS
+    # ============================================================================
+    # Format: g, <user/group>, <role>
+    # These assignments map OpenShift groups to RHDH roles
+
+    # Platform Admin Group
+    g, group:rhdh-platform-admins, role:platform-admin
+
+    # Technical Lead Group
+    g, group:rhdh-technical-leads, role:technical-lead
+
+    # Developer Group
+    g, group:rhdh-developers, role:developer
+
+    # Tester Group
+    g, group:rhdh-testers, role:tester
+
+    # Product Owner Group
+    g, group:rhdh-product-owners, role:product-owner

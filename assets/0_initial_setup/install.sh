@@ -44,9 +44,9 @@ PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 INFO_DIR="${PROJECT_ROOT}/info"
 
 # Remove old environment files if they exist
-if [ -f "${INFO_DIR}/environment_config.md" ]; then
+if [ -f "${INFO_DIR}/environment_config_gitops.md" ]; then
     print_info "Removing old environment configuration file..."
-    rm -f "${INFO_DIR}/environment_config.md"
+    rm -f "${INFO_DIR}/environment_config_gitops.md"
 fi
 
 if [ -f "${INFO_DIR}/versions.csv" ]; then
@@ -618,7 +618,7 @@ fi
 echo ""
 print_info "For troubleshooting, see the documentation in assets/0_initial_setup/"
 
-# Create environment_config.md and versions.csv with actual values
+# Create environment_config_gitops.md and versions.csv with actual values
 print_info "Creating environment configuration files..."
 mkdir -p "${INFO_DIR}"
 
@@ -637,8 +637,8 @@ if [ "$INSTALL_GITEA" = true ]; then
     echo "gitea_chart,${GITEA_HELM_CHART_VERSION}" >> "${INFO_DIR}/versions.csv"
 fi
 
-# Create environment_config.md
-cat > "${INFO_DIR}/environment_config.md" <<EOF
+# Create environment_config_gitops.md
+cat > "${INFO_DIR}/environment_config_gitops.md" <<EOF
 # Environment Configuration
 
 This file contains the access credentials and configuration details for your OpenShift GitOps environment.
@@ -663,7 +663,7 @@ This file contains the access credentials and configuration details for your Ope
 EOF
 
 if [ "$INSTALL_GITEA" = true ]; then
-cat >> "${INFO_DIR}/environment_config.md" <<EOF
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<EOF
 ╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
 ║ Gitea         ║                                                                   ║
 ║               ║ App Version:   ${GITEA_APP_VERSION}                               "
@@ -676,23 +676,23 @@ EOF
 fi
 
 if [ "$USE_GITHUB" = true ]; then
-cat >> "${INFO_DIR}/environment_config.md" <<EOF
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<EOF
 ╠═══════════════╬═══════════════════════════════════════════════════════════════════╣
 ║ GitHub        ║                                                                   ║
 ║               ║ Organization: ${GITHUB_ORG}
 EOF
 if [ -n "$GITHUB_REPO" ]; then
-cat >> "${INFO_DIR}/environment_config.md" <<EOF
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<EOF
 ║               ║ Repository:   ${GITHUB_REPO}
 EOF
 else
-cat >> "${INFO_DIR}/environment_config.md" <<EOF
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<EOF
 ║               ║ Access: All repositories in organization                          ║
 EOF
 fi
 fi
 
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ╚═══════════════╩═══════════════════════════════════════════════════════════════════╝
 ```
 
@@ -717,7 +717,7 @@ argocd login \$(oc get route openshift-gitops-server -n openshift-gitops -o json
 EOF
 
 if [ "$INSTALL_GITEA" = true ]; then
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ### Gitea
 ```bash
 # Get Gitea URL
@@ -727,7 +727,7 @@ echo "https://$(oc get route gitea -n gitea -o jsonpath='{.spec.host}')"
 EOF
 fi
 
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ## Default Credentials
 
 ### ArgoCD
@@ -738,7 +738,7 @@ cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
 EOF
 
 if [ "$INSTALL_GITEA" = true ]; then
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ### Gitea
 - **Username**: `admin`
 - **Password**: `gitea1234!`
@@ -746,7 +746,7 @@ cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
 EOF
 fi
 
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ## Verification Commands
 
 ### Check ArgoCD Status
@@ -759,7 +759,7 @@ oc get route openshift-gitops-server -n openshift-gitops
 EOF
 
 if [ "$INSTALL_GITEA" = true ]; then
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ### Check Gitea Status
 ```bash
 oc get pods -n gitea
@@ -770,7 +770,7 @@ oc get route gitea -n gitea
 EOF
 fi
 
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ## Security Notes
 
 ⚠️ **Important**: These are default credentials for development/testing purposes.
@@ -805,7 +805,7 @@ For production environments:
 EOF
 
 if [ "$INSTALL_GITEA" = true ]; then
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ### Gitea Admin Password
 
 1. Log into Gitea UI
@@ -821,7 +821,7 @@ oc exec -n gitea deployment/gitea -- gitea admin user change-password \
 EOF
 fi
 
-cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
+cat >> "${INFO_DIR}/environment_config_gitops.md" <<'EOF'
 ## Additional Resources
 
 - [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
@@ -835,5 +835,5 @@ cat >> "${INFO_DIR}/environment_config.md" <<'EOF'
 **Installation Script**: `assets/0_initial_setup/install.sh`
 EOF
 
-print_success "Environment configuration saved to: ${INFO_DIR}/environment_config.md"
+print_success "Environment configuration saved to: ${INFO_DIR}/environment_config_gitops.md"
 print_success "Component versions saved to: ${INFO_DIR}/versions.csv"
