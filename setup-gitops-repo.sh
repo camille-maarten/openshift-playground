@@ -416,6 +416,38 @@ display_summary() {
 # MAIN EXECUTION
 # ============================================================================
 
+# ============================================================================
+# RESTORE TEMPLATE FILES
+# ============================================================================
+
+restore_template_files() {
+    print_header "Restoring Template Files"
+
+    # Get parent repository (openshift-playground)
+    PARENT_REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+
+    # Check if we're in a git repository
+    if [ -d "${PARENT_REPO}/.git" ]; then
+        print_info "Restoring template files to GITEA_URL placeholders..."
+
+        cd "${PARENT_REPO}"
+
+        # Restore the template files from the main repository
+        git restore assets/1_gitops/playground-apps.yaml \
+                   assets/1_gitops/apps/01-playground-namespaces.yaml \
+                   assets/1_gitops/apps/02-kafka-operator.yaml \
+                   assets/1_gitops/apps/03-developer-hub.yaml 2>/dev/null || true
+
+        print_success "Template files restored"
+    else
+        print_info "Not in parent git repository, skipping template restoration"
+    fi
+}
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
 main() {
     print_header "GitOps Repository Setup"
 
@@ -429,6 +461,7 @@ main() {
     update_argocd_repo_urls
     add_git_remote
     commit_and_push
+    restore_template_files
     display_summary
 }
 
