@@ -1,11 +1,13 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: jaeger
+  name: kiali
   namespace: openshift-operators
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   channel: stable
   installPlanApproval: Automatic
-  name: jaeger
-  source: community-operators
+  name: kiali-ossm
+  source: redhat-operators
   sourceNamespace: openshift-marketplace
