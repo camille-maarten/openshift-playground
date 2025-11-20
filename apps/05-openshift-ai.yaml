@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kafka-operator
+  name: openshift-ai
   namespace: openshift-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -15,11 +15,11 @@ spec:
     #   oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'
     repoURL: https://gitea-gitea.apps.cluster-mjs8r.mjs8r.sandbox5419.opentlc.com/admin/playground-gitops.git
     targetRevision: main
-    path: kafka/manifests
+    path: openshift-ai/manifests
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: kafka
+    namespace: openshift-operators
 
   syncPolicy:
     automated:
@@ -27,10 +27,20 @@ spec:
       selfHeal: true
       allowEmpty: false
     syncOptions:
-      - CreateNamespace=true
+      - CreateNamespace=false
+      - RespectIgnoreDifferences=true
+      - SkipDryRunOnMissingResource=true
     retry:
       limit: 5
       backoff:
         duration: 5s
         factor: 2
         maxDuration: 3m
+
+  # Health assessment for custom resources
+  ignoreDifferences:
+    - group: datasciencecluster.opendatahub.io
+      kind: DataScienceCluster
+      jsonPointers:
+        - /spec/components/*/managementState
+        - /status

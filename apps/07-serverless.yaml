@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kafka-operator
+  name: serverless
   namespace: openshift-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -15,11 +15,11 @@ spec:
     #   oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'
     repoURL: https://gitea-gitea.apps.cluster-mjs8r.mjs8r.sandbox5419.opentlc.com/admin/playground-gitops.git
     targetRevision: main
-    path: kafka/manifests
+    path: serverless/manifests
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: kafka
+    namespace: openshift-serverless
 
   syncPolicy:
     automated:
