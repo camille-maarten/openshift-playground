@@ -24,7 +24,7 @@ Subscribes to the Elasticsearch operator from Red Hat Operators catalog.
 **Key settings:**
 - Channel: `stable`
 - Install Plan Approval: `Automatic`
-- Namespace: `openshift-operators-redhat` (Elasticsearch-specific namespace)
+- Namespace: `openshift-operators` (Elasticsearch-specific namespace)
 
 ### 02-subscription-jaeger.yaml
 Subscribes to the Red Hat OpenShift distributed tracing platform (Jaeger).
@@ -138,11 +138,11 @@ Check deployment status:
 ```bash
 # Check all operators
 oc get csv -n openshift-operators | grep -E "(servicemesh|kiali|jaeger)"
-oc get csv -n openshift-operators-redhat | grep elasticsearch
+oc get csv -n openshift-operators | grep elasticsearch
 
 # Check operator pods
 oc get pods -n openshift-operators | grep -E "(istio|kiali|jaeger)"
-oc get pods -n openshift-operators-redhat | grep elasticsearch
+oc get pods -n openshift-operators | grep elasticsearch
 
 # Check Service Mesh Control Plane (after creating one)
 oc get smcp -n istio-system
@@ -242,11 +242,11 @@ spec:
 ```bash
 # Check operator subscriptions
 oc get subscriptions -n openshift-operators
-oc get subscriptions -n openshift-operators-redhat
+oc get subscriptions -n openshift-operators
 
 # Check install plans
 oc get installplans -n openshift-operators
-oc get installplans -n openshift-operators-redhat
+oc get installplans -n openshift-operators
 
 # Check operator logs
 oc logs -n openshift-operators -l name=istio-operator
