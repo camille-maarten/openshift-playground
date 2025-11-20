@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: service-mesh
+  name: kiali
   namespace: openshift-gitops
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -15,7 +15,7 @@ spec:
     #   oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'
     repoURL: https://gitea-gitea.apps.cluster-mjs8r.mjs8r.sandbox5419.opentlc.com/admin/playground-gitops.git
     targetRevision: main
-    path: service-mesh/manifests
+    path: kiali/manifests
 
   destination:
     server: https://kubernetes.default.svc
