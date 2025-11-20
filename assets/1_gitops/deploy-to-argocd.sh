@@ -237,6 +237,18 @@ create_environment_config() {
     KAFKA_OPERATOR_VERSION=$(oc get csv -n kafka -o json 2>/dev/null | \
         jq -r '.items[] | select(.spec.displayName | contains("Streams for Apache Kafka") or contains("AMQ Streams") or contains("Strimzi")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
+    # Get Service Mesh 3 Operator version
+    SERVICE_MESH_VERSION=$(oc get csv -n openshift-operators -o json 2>/dev/null | \
+        jq -r '.items[] | select(.spec.displayName | contains("Red Hat OpenShift Service Mesh 3")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
+
+    # Get Jaeger Operator version
+    JAEGER_OPERATOR_VERSION=$(oc get csv -n openshift-operators -o json 2>/dev/null | \
+        jq -r '.items[] | select(.spec.displayName | contains("Jaeger Operator") and (.spec.displayName | contains("Community"))) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
+
+    # Get Elasticsearch ECK Operator version
+    ELASTICSEARCH_OPERATOR_VERSION=$(oc get csv -n elastic-system -o json 2>/dev/null | \
+        jq -r '.items[] | select(.spec.displayName | contains("Elasticsearch") and (.spec.displayName | contains("ECK"))) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
+
     # Get Gitea route
     GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
 
@@ -262,6 +274,9 @@ This file contains configuration information for platform components deployed vi
 ║ OpenShift GitOps          ║ ${GITOPS_VERSION}                                         ║
 ║ Red Hat Developer Hub     ║ ${RHDH_OPERATOR_VERSION}                                  ║
 ║ Streams for Apache Kafka  ║ ${KAFKA_OPERATOR_VERSION}                                 ║
+║ Service Mesh 3            ║ ${SERVICE_MESH_VERSION}                                   ║
+║ Jaeger Operator           ║ ${JAEGER_OPERATOR_VERSION}                                ║
+║ Elasticsearch (ECK)       ║ ${ELASTICSEARCH_OPERATOR_VERSION}                         ║
 ╚═══════════════════════════╩═══════════════════════════════════════════════════════════╝
 \`\`\`
 
@@ -445,6 +460,9 @@ CSV_HEADER
     GITOPS_VERSION_NUM=$(echo "$GITOPS_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
     RHDH_VERSION_NUM=$(echo "$RHDH_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
     KAFKA_VERSION_NUM=$(echo "$KAFKA_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+-?\d*' | head -1 || echo "N/A")
+    SERVICE_MESH_VERSION_NUM=$(echo "$SERVICE_MESH_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
+    JAEGER_VERSION_NUM=$(echo "$JAEGER_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
+    ELASTICSEARCH_VERSION_NUM=$(echo "$ELASTICSEARCH_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
 
     # Check if entries already exist and remove them (to avoid duplicates)
     if grep -q "^rhdh_operator," "${VERSIONS_FILE}"; then
@@ -457,6 +475,21 @@ CSV_HEADER
         sed -i.bak '/^kafka_operator,/d' "${VERSIONS_FILE}"
     fi
 
+    if grep -q "^service_mesh_operator," "${VERSIONS_FILE}"; then
+        # Remove existing Service Mesh operator entry
+        sed -i.bak '/^service_mesh_operator,/d' "${VERSIONS_FILE}"
+    fi
+
+    if grep -q "^jaeger_operator," "${VERSIONS_FILE}"; then
+        # Remove existing Jaeger operator entry
+        sed -i.bak '/^jaeger_operator,/d' "${VERSIONS_FILE}"
+    fi
+
+    if grep -q "^elasticsearch_operator," "${VERSIONS_FILE}"; then
+        # Remove existing Elasticsearch operator entry
+        sed -i.bak '/^elasticsearch_operator,/d' "${VERSIONS_FILE}"
+    fi
+
     # Append new entries
     if [ "$RHDH_VERSION_NUM" != "N/A" ]; then
         echo "rhdh_operator,${RHDH_VERSION_NUM}" >> "${VERSIONS_FILE}"
@@ -466,6 +499,21 @@ CSV_HEADER
     if [ "$KAFKA_VERSION_NUM" != "N/A" ]; then
         echo "kafka_operator,${KAFKA_VERSION_NUM}" >> "${VERSIONS_FILE}"
         print_info "Added Kafka operator version: ${KAFKA_VERSION_NUM}"
+    fi
+
+    if [ "$SERVICE_MESH_VERSION_NUM" != "N/A" ]; then
+        echo "service_mesh_operator,${SERVICE_MESH_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added Service Mesh operator version: ${SERVICE_MESH_VERSION_NUM}"
+    fi
+
+    if [ "$JAEGER_VERSION_NUM" != "N/A" ]; then
+        echo "jaeger_operator,${JAEGER_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added Jaeger operator version: ${JAEGER_VERSION_NUM}"
+    fi
+
+    if [ "$ELASTICSEARCH_VERSION_NUM" != "N/A" ]; then
+        echo "elasticsearch_operator,${ELASTICSEARCH_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added Elasticsearch operator version: ${ELASTICSEARCH_VERSION_NUM}"
     fi
 
     # Clean up backup files
