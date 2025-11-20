@@ -238,16 +238,13 @@ create_environment_config() {
         jq -r '.items[] | select(.spec.displayName | contains("Streams for Apache Kafka") or contains("AMQ Streams") or contains("Strimzi")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
 
     # Get Service Mesh 3 Operator version
-    SERVICE_MESH_VERSION=$(oc get csv -n openshift-operators -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("Red Hat OpenShift Service Mesh 3")) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
+    SERVICE_MESH_VERSION=$(oc get csv -n openshift-operators -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep "Red Hat OpenShift Service Mesh 3" | head -1 || echo "N/A")
 
     # Get Jaeger Operator version
-    JAEGER_OPERATOR_VERSION=$(oc get csv -n openshift-operators -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("Jaeger Operator") and (.spec.displayName | contains("Community"))) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
+    JAEGER_OPERATOR_VERSION=$(oc get csv -n openshift-operators -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep "Community Jaeger Operator" | head -1 || echo "N/A")
 
     # Get Elasticsearch ECK Operator version
-    ELASTICSEARCH_OPERATOR_VERSION=$(oc get csv -n elastic-system -o json 2>/dev/null | \
-        jq -r '.items[] | select(.spec.displayName | contains("Elasticsearch") and (.spec.displayName | contains("ECK"))) | .spec.displayName + " " + .spec.version' 2>/dev/null | head -1 || echo "N/A")
+    ELASTICSEARCH_OPERATOR_VERSION=$(oc get csv -n elastic-system -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep "Elasticsearch (ECK) Operator" | head -1 || echo "N/A")
 
     # Get Gitea route
     GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
@@ -456,13 +453,24 @@ component,version
 CSV_HEADER
     fi
 
-    # Extract version numbers from the full strings
-    GITOPS_VERSION_NUM=$(echo "$GITOPS_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
-    RHDH_VERSION_NUM=$(echo "$RHDH_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
-    KAFKA_VERSION_NUM=$(echo "$KAFKA_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+-?\d*' | head -1 || echo "N/A")
-    SERVICE_MESH_VERSION_NUM=$(echo "$SERVICE_MESH_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
-    JAEGER_VERSION_NUM=$(echo "$JAEGER_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
-    ELASTICSEARCH_VERSION_NUM=$(echo "$ELASTICSEARCH_OPERATOR_VERSION" | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "N/A")
+    # Extract version numbers from the full strings (BSD grep compatible)
+    GITOPS_VERSION_NUM=$(echo "$GITOPS_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
+    [ "$GITOPS_VERSION_NUM" = "$GITOPS_VERSION" ] && GITOPS_VERSION_NUM="N/A"
+
+    RHDH_VERSION_NUM=$(echo "$RHDH_OPERATOR_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
+    [ "$RHDH_VERSION_NUM" = "$RHDH_OPERATOR_VERSION" ] && RHDH_VERSION_NUM="N/A"
+
+    KAFKA_VERSION_NUM=$(echo "$KAFKA_OPERATOR_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+-?[0-9]*).*/\1/' | head -1)
+    [ "$KAFKA_VERSION_NUM" = "$KAFKA_OPERATOR_VERSION" ] && KAFKA_VERSION_NUM="N/A"
+
+    SERVICE_MESH_VERSION_NUM=$(echo "$SERVICE_MESH_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
+    [ "$SERVICE_MESH_VERSION_NUM" = "$SERVICE_MESH_VERSION" ] && SERVICE_MESH_VERSION_NUM="N/A"
+
+    JAEGER_VERSION_NUM=$(echo "$JAEGER_OPERATOR_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
+    [ "$JAEGER_VERSION_NUM" = "$JAEGER_OPERATOR_VERSION" ] && JAEGER_VERSION_NUM="N/A"
+
+    ELASTICSEARCH_VERSION_NUM=$(echo "$ELASTICSEARCH_OPERATOR_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
+    [ "$ELASTICSEARCH_VERSION_NUM" = "$ELASTICSEARCH_OPERATOR_VERSION" ] && ELASTICSEARCH_VERSION_NUM="N/A"
 
     # Check if entries already exist and remove them (to avoid duplicates)
     if grep -q "^rhdh_operator," "${VERSIONS_FILE}"; then
