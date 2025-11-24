@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devspaces
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    # TEMPLATE: Update this to point to your Git repository
+    # The setup-gitops-repo.sh script will automatically set this from the cluster's Gitea route
+    # If applying manually, replace GITEA_URL with your cluster's Gitea URL:
+    #   oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'
+    repoURL: GITEA_URL/admin/playground-gitops.git
+    targetRevision: main
+    path: devspaces/manifests
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-devspaces
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+      - SkipDryRunOnMissingResource=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Health assessment for custom resources
+  ignoreDifferences:
+    - group: org.eclipse.che
+      kind: CheCluster
+      jsonPointers:
+        - /spec/components/metrics
+        - /status

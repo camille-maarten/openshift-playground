@@ -1,0 +1,39 @@
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  name: rhdh-platform-admins
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  name: rhdh-technical-leads
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  name: rhdh-developers
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  name: rhdh-testers
+users: []
+---
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  name: rhdh-product-owners
+users: []
