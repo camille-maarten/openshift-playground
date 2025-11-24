@@ -1,0 +1,32 @@
+---
+# Keycloak User for Red Hat Developer Hub access
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakUser
+metadata:
+  name: pe-user
+  namespace: keycloak
+  labels:
+    app: keycloak
+    realm: rhdh
+spec:
+  realmSelector:
+    matchLabels:
+      app: keycloak
+      realm: rhdh
+  user:
+    username: "pe-user"
+    firstName: "Platform"
+    lastName: "Engineer"
+    email: "pe-user@example.com"
+    enabled: true
+    emailVerified: true
+    # Credentials - password: rhdh1234!
+    credentials:
+      - type: "password"
+        value: "rhdh1234!"
+        temporary: false
+    # User attributes
+    attributes:
+      locale: ["en"]
+    # Required actions (empty means no required actions)
+    requiredActions: []

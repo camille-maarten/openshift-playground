@@ -1,0 +1,93 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # Application reconciliation timeout
+  timeout.reconciliation: 180s
+
+  # Application operation processors
+  application.instanceLabelKey: argocd.argoproj.io/instance
+
+  # Enable admin user
+  admin.enabled: "true"
+
+  # Local user accounts configuration
+  # Define admin-user with apiKey and login capabilities
+  accounts.admin-user: apiKey,login
+  accounts.admin-user.enabled: "true"
+
+  # Git commit message template
+  application.resourceTrackingMethod: annotation
+
+  # Cluster configurations
+  # cluster.inClusterEnabled: "true"
+
+  # Helm configurations
+  helm.valuesFileSchemes: https, http
+
+  # Kustomize build options
+  kustomize.buildOptions: --enable-helm --load-restrictor LoadRestrictionsNone
+
+  # Repository credentials template
+  # repository.credentials: |
+  #   - url: https://github.com/your-org
+  #     usernameSecret:
+  #       name: git-credentials
+  #       key: username
+  #     passwordSecret:
+  #       name: git-credentials
+  #       key: password
+
+  # Status badge enabled
+  statusbadge.enabled: "true"
+
+  # Users can create applications in any namespace
+  application.namespaces: "*"
+
+  # Dex configuration (SSO)
+  # dex.config: |
+  #   connectors:
+  #     - type: openshift
+  #       id: openshift
+  #       name: OpenShift
+
+  # Resource exclusions
+  resource.exclusions: |
+    - apiGroups:
+      - tekton.dev
+      kinds:
+      - TaskRun
+      - PipelineRun
+      clusters:
+      - "*"
+
+  # Resource customizations for health checks
+  resource.customizations: |
+    argoproj.io/Application:
+      health.lua: |
+        hs = {}
+        hs.status = "Progressing"
+        hs.message = ""
+        if obj.status ~= nil then
+          if obj.status.health ~= nil then
+            hs.status = obj.status.health.status
+            if obj.status.health.message ~= nil then
+              hs.message = obj.status.health.message
+            end
+          end
+        end
+        return hs
+    route.openshift.io/Route:
+      health.lua: |
+        hs = {}
+        hs.status = "Healthy"
+        return hs
+
+  # URL for ArgoCD (will be set by the route)
+  # url: https://openshift-gitops-server-openshift-gitops.apps.your-cluster.com

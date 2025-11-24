@@ -61,6 +61,7 @@ get_namespace_for_app() {
         "service-mesh") echo "openshift-operators" ;;
         "jaeger") echo "openshift-operators" ;;
         "elasticsearch") echo "elastic-system" ;;
+        "keycloak") echo "keycloak" ;;
         "amq-broker") echo "openshift-operators" ;;
         *) echo "" ;;
     esac
@@ -76,6 +77,7 @@ get_operator_pattern_for_app() {
         "service-mesh") echo "Red Hat OpenShift Service Mesh 3" ;;
         "jaeger") echo "Community Jaeger Operator" ;;
         "elasticsearch") echo "Elasticsearch (ECK) Operator" ;;
+        "keycloak") echo "Red Hat Single Sign-On" ;;
         "amq-broker") echo "Red Hat Integration - AMQ Broker" ;;
         *) echo "" ;;
     esac

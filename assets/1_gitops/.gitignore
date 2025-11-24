@@ -1,16 +1,43 @@
-# Temporary files
-*.tmp
-*.swp
-*~
+# Compiled class file
+*.class
 
-# OS files
-.DS_Store
-Thumbs.db
+# Log file
+*.log
 
-# IDE files
-.vscode/
-.idea/
-*.iml
+# BlueJ files
+*.ctxt
 
-# Backup files
-*.bak
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+replay_pid*
+
+.idea
+.claude
+
+
+# Ignore actual secret files (not templates)
+#*-secret.yaml # => is allowed, it is in controlled (demo) environments
+!*-secret.yaml.template
+
+# Ignore any files with credentials
+*credentials*.yaml
+!*credentials*.yaml.template
+
+# Ignore any local overrides
+*.local.yaml
+/info/environment_config_gitops.md
+/info/environment_config_platform.md
+/info/versions.csv
+/info/versions.txt

@@ -1,0 +1,182 @@
+---
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: openshift-gitops
+  namespace: openshift-gitops
+spec:
+  # Server configuration
+  server:
+    replicas: 2
+    grpc:
+      ingress:
+        enabled: false
+    ingress:
+      enabled: false
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    route:
+      enabled: true
+      tls:
+        termination: reencrypt
+        insecureEdgeTerminationPolicy: Redirect
+    service:
+      type: ClusterIP
+
+  # Application controller configuration
+  controller:
+    processors: {}
+    resources:
+      limits:
+        cpu: "2"
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    sharding:
+      enabled: false
+
+  # Repo server configuration
+  repo:
+    replicas: 1
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+  # Redis configuration
+  redis:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+
+  # Dex (SSO) configuration - disabled by default, use OpenShift OAuth
+  dex:
+    openShiftOAuth: true
+    resources:
+      limits:
+        cpu: 500m
+        memory: 256Mi
+      requests:
+        cpu: 250m
+        memory: 128Mi
+
+  # RBAC configuration
+  rbac:
+    defaultPolicy: 'role:readonly'
+    policy: |
+      g, system:cluster-admins, role:admin
+      g, cluster-admins, role:admin
+    scopes: '[groups]'
+
+  # High Availability
+  ha:
+    enabled: false
+
+  # Monitoring
+  monitoring:
+    enabled: true
+
+  # Notifications controller
+  notifications:
+    enabled: true
+    replicas: 1
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+  # ApplicationSet controller
+  applicationSet:
+    resources:
+      limits:
+        cpu: "2"
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+    webhookServer:
+      ingress:
+        enabled: false
+      route:
+        enabled: false
+
+  # Resource customizations
+  resourceCustomizations: |
+    argoproj.io/Application:
+      health.lua: |
+        hs = {}
+        hs.status = "Progressing"
+        hs.message = ""
+        if obj.status ~= nil then
+          if obj.status.health ~= nil then
+            hs.status = obj.status.health.status
+            if obj.status.health.message ~= nil then
+              hs.message = obj.status.health.message
+            end
+          end
+        end
+        return hs
+
+  # Ignore differences in certain fields
+  resourceIgnoreDifferences:
+    resourceIdentifiers:
+      - group: apps
+        kind: Deployment
+        customization:
+          jsonPointers:
+            - /spec/replicas
+      - group: route.openshift.io
+        kind: Route
+        customization:
+          jsonPointers:
+            - /status/ingress
+
+  # Resource exclusions
+  resourceExclusions: |
+    - apiGroups:
+      - tekton.dev
+      clusters:
+      - '*'
+      kinds:
+      - TaskRun
+      - PipelineRun
+
+  # Resource tracking method
+  resourceTrackingMethod: annotation
+
+  # SSO configuration using OpenShift OAuth
+  sso:
+    provider: dex
+    dex:
+      openShiftOAuth: true
+
+  # Initial repositories (can be extended via ConfigMap)
+  # repositories: |
+  #   - url: https://github.com/your-org/your-repo
+  #     type: git
+
+  # Kustomize build options
+  kustomizeBuildOptions: --enable-helm
+
+  # Extra configuration
+  extraConfig:
+    accounts.admin: apiKey,login
+    accounts.developer: apiKey,login
+    accounts.admin-user: apiKey,login
+    accounts.admin-user.enabled: "true"
