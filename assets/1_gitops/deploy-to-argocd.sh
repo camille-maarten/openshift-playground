@@ -246,6 +246,9 @@ create_environment_config() {
     # Get Elasticsearch ECK Operator version
     ELASTICSEARCH_OPERATOR_VERSION=$(oc get csv -n elastic-system -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep "Elasticsearch (ECK) Operator" | head -1 || echo "N/A")
 
+    # Get Keycloak/RHSSO Operator version
+    KEYCLOAK_OPERATOR_VERSION=$(oc get csv -n keycloak -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep -E "Red Hat Single Sign-On|RHSSO Operator" | head -1 || echo "N/A")
+
     # Get Gitea route
     GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
 
@@ -274,6 +277,7 @@ This file contains configuration information for platform components deployed vi
 ║ Service Mesh 3            ║ ${SERVICE_MESH_VERSION}                                   ║
 ║ Jaeger Operator           ║ ${JAEGER_OPERATOR_VERSION}                                ║
 ║ Elasticsearch (ECK)       ║ ${ELASTICSEARCH_OPERATOR_VERSION}                         ║
+║ Keycloak/RHSSO            ║ ${KEYCLOAK_OPERATOR_VERSION}                              ║
 ╚═══════════════════════════╩═══════════════════════════════════════════════════════════╝
 \`\`\`
 
@@ -472,6 +476,9 @@ CSV_HEADER
     ELASTICSEARCH_VERSION_NUM=$(echo "$ELASTICSEARCH_OPERATOR_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
     [ "$ELASTICSEARCH_VERSION_NUM" = "$ELASTICSEARCH_OPERATOR_VERSION" ] && ELASTICSEARCH_VERSION_NUM="N/A"
 
+    KEYCLOAK_VERSION_NUM=$(echo "$KEYCLOAK_OPERATOR_VERSION" | sed -E 's/.*([0-9]+\.[0-9]+\.[0-9]+).*/\1/' | head -1)
+    [ "$KEYCLOAK_VERSION_NUM" = "$KEYCLOAK_OPERATOR_VERSION" ] && KEYCLOAK_VERSION_NUM="N/A"
+
     # Check if entries already exist and remove them (to avoid duplicates)
     if grep -q "^rhdh_operator," "${VERSIONS_FILE}"; then
         # Remove existing RHDH operator entry
@@ -498,6 +505,11 @@ CSV_HEADER
         sed -i.bak '/^elasticsearch_operator,/d' "${VERSIONS_FILE}"
     fi
 
+    if grep -q "^keycloak_operator," "${VERSIONS_FILE}"; then
+        # Remove existing Keycloak operator entry
+        sed -i.bak '/^keycloak_operator,/d' "${VERSIONS_FILE}"
+    fi
+
     # Append new entries
     if [ "$RHDH_VERSION_NUM" != "N/A" ]; then
         echo "rhdh_operator,${RHDH_VERSION_NUM}" >> "${VERSIONS_FILE}"
@@ -522,6 +534,11 @@ CSV_HEADER
     if [ "$ELASTICSEARCH_VERSION_NUM" != "N/A" ]; then
         echo "elasticsearch_operator,${ELASTICSEARCH_VERSION_NUM}" >> "${VERSIONS_FILE}"
         print_info "Added Elasticsearch operator version: ${ELASTICSEARCH_VERSION_NUM}"
+    fi
+
+    if [ "$KEYCLOAK_VERSION_NUM" != "N/A" ]; then
+        echo "keycloak_operator,${KEYCLOAK_VERSION_NUM}" >> "${VERSIONS_FILE}"
+        print_info "Added Keycloak operator version: ${KEYCLOAK_VERSION_NUM}"
     fi
 
     # Clean up backup files

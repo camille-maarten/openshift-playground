@@ -31,6 +31,26 @@ data:
           user: ${POSTGRES_USER}
           password: ${POSTGRES_PASSWORD}
 
+    # Authentication configuration
+    auth:
+      # Environment variable for the base URL
+      environment: production
+      # Authentication providers
+      providers:
+        # Keycloak OIDC provider
+        oidc:
+          production:
+            metadataUrl: ${KEYCLOAK_BASE_URL}/realms/rhdh/.well-known/openid-configuration
+            clientId: ${KEYCLOAK_CLIENT_ID}
+            clientSecret: ${KEYCLOAK_CLIENT_SECRET}
+            prompt: auto
+            ## Uncomment for additional scopes
+            # scope: 'openid profile email'
+            signIn:
+              resolvers:
+                # Resolves the user entity from the Keycloak token
+                - resolver: preferredUsernameMatchingUserEntityName
+
     # Permission framework configuration
     permission:
       enabled: true
