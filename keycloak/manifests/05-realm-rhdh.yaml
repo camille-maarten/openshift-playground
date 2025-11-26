@@ -28,9 +28,6 @@ spec:
     resetPasswordAllowed: true
     editUsernameAllowed: false
     bruteForceProtected: true
-    # Session settings
-    ssoSessionIdleTimeout: 1800
-    ssoSessionMaxLifespan: 36000
     # Token settings
     accessTokenLifespan: 300
     accessTokenLifespanForImplicitFlow: 900
