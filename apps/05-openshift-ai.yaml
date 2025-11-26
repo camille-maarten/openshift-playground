@@ -11,9 +11,9 @@ spec:
   source:
     # TEMPLATE: Update this to point to your Git repository
     # The setup-gitops-repo.sh script will automatically set this from the cluster's Gitea route
-    # If applying manually, replace https://gitea-gitea.apps.cluster-f4r9v.f4r9v.sandbox3548.opentlc.com with your cluster's Gitea URL:
+    # If applying manually, replace https://gitea-gitea.apps.cluster-jstg2.jstg2.sandbox4273.opentlc.com with your cluster's Gitea URL:
     #   oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'
-    repoURL: https://gitea-gitea.apps.cluster-f4r9v.f4r9v.sandbox3548.opentlc.com/admin/playground-gitops.git
+    repoURL: https://gitea-gitea.apps.cluster-jstg2.jstg2.sandbox4273.opentlc.com/admin/playground-gitops.git
     targetRevision: main
     path: openshift-ai/manifests
 
