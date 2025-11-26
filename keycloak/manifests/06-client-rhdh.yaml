@@ -32,13 +32,13 @@ spec:
     authorizationServicesEnabled: false
     # Redirect URIs - TEMPLATE: These will be updated by deploy script
     redirectUris:
-      - "https://backstage-developer-hub-rhdh.apps-crc.testing/*"
-      - "https://backstage-developer-hub-rhdh.apps-crc.testing/api/auth/oidc/handler/frame"
+      - "https://backstage-developer-hub-rhdh.apps.cluster-52rbx.52rbx.sandbox5350.opentlc.com/*"
+      - "https://backstage-developer-hub-rhdh.apps.cluster-52rbx.52rbx.sandbox5350.opentlc.com/api/auth/oidc/handler/frame"
     # Web origins
     webOrigins:
-      - "https://backstage-developer-hub-rhdh.apps-crc.testing"
+      - "https://backstage-developer-hub-rhdh.apps.cluster-52rbx.52rbx.sandbox5350.opentlc.com"
     # Base URL
-    baseUrl: "https://backstage-developer-hub-rhdh.apps-crc.testing"
+    baseUrl: "https://backstage-developer-hub-rhdh.apps.cluster-52rbx.52rbx.sandbox5350.opentlc.com"
     # Client authentication
     clientAuthenticatorType: client-secret
     # Default client scopes
