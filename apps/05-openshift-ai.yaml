@@ -30,7 +30,6 @@ spec:
       - CreateNamespace=false
       - RespectIgnoreDifferences=true
       - SkipDryRunOnMissingResource=true
-      - ServerSideApply=true
     retry:
       limit: 5
       backoff:
