@@ -35,8 +35,10 @@ NC='\033[0m' # No Color
 
 # Script directories
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INITIAL_SETUP_DIR="${SCRIPT_DIR}/assets/0_initial_setup"
-GITOPS_DIR="${SCRIPT_DIR}/assets/1_gitops"
+# Calculate parent directory (openshift-playground root)
+PARENT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+INITIAL_SETUP_DIR="${PARENT_DIR}/assets/0_initial_setup"
+GITOPS_DIR="${PARENT_DIR}/assets/1_gitops"
 
 # ============================================================================
 # HELPER FUNCTIONS
