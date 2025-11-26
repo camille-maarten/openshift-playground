@@ -97,20 +97,41 @@ If you prefer to run steps individually:
 1_gitops/
 ├── developerhub/              # Red Hat Developer Hub installation
 │   ├── manifests/             # RHDH operator and instance manifests
-│   ├── argocd-application.yaml
+│   └── README.md
+├── devspaces/                 # Red Hat Dev Spaces installation
+│   ├── manifests/             # Dev Spaces operator and CheCluster manifests
 │   └── README.md
 ├── kafka/                     # AMQ Streams (Kafka) operator installation
 │   ├── manifests/             # Kafka operator manifests
-│   ├── argocd-application.yaml
 │   └── README.md
 ├── namespaces/                # Namespace definitions and configurations
 │   ├── manifests/             # Playground namespace and policies
-│   ├── argocd-application.yaml
+│   └── README.md
+├── openshift-ai/              # Red Hat OpenShift AI installation
+│   ├── manifests/             # OpenShift AI operator and DataScienceCluster manifests
+│   └── README.md
+├── service-mesh/              # Red Hat Service Mesh installation
+│   ├── manifests/             # Service Mesh, Kiali, Jaeger, Elasticsearch operators
+│   └── README.md
+├── serverless/                # OpenShift Serverless installation
+│   ├── manifests/             # Serverless operator and Knative namespaces
+│   └── README.md
+├── amq-broker/                # Red Hat AMQ Broker installation
+│   ├── manifests/             # AMQ Broker operator manifests
+│   └── README.md
+├── elasticsearch/             # Elasticsearch (ECK) operator installation
+│   ├── manifests/             # ECK operator manifests
 │   └── README.md
 ├── apps/                      # App-of-Apps child application definitions
 │   ├── 01-playground-namespaces.yaml
 │   ├── 02-kafka-operator.yaml
-│   └── 03-developer-hub.yaml
+│   ├── 03-developer-hub.yaml
+│   ├── 04-devspaces.yaml
+│   ├── 05-openshift-ai.yaml
+│   ├── 06-service-mesh.yaml
+│   ├── 07-serverless.yaml
+│   ├── 08-amq-broker.yaml
+│   └── 09-elasticsearch.yaml
 ├── playground-apps.yaml       # App-of-Apps parent application
 ├── setup-gitops-repo.sh       # Upload manifests to Gitea (replaces GITEA_URL with actual URL)
 ├── deploy-to-argocd.sh        # Deploy ArgoCD Applications
@@ -133,14 +154,24 @@ If you prefer to run steps individually:
   - Dynamic plugin caching
   - PostgreSQL database
 
-### 2. Kafka (AMQ Streams)
+### 2. Dev Spaces
+- **Location**: `devspaces/`
+- **Purpose**: Cloud-based browser IDE for development
+- **Includes**:
+  - Dev Spaces operator subscription
+  - CheCluster instance
+  - VS Code in browser
+  - Workspace auto-provisioning
+  - Container build support
+
+### 3. Kafka (AMQ Streams)
 - **Location**: `kafka/`
 - **Purpose**: Event streaming platform
 - **Includes**:
   - AMQ Streams operator subscription
   - Ready for Kafka cluster deployments
 
-### 3. Namespaces
+### 4. Namespaces
 - **Location**: `namespaces/`
 - **Purpose**: Namespace configurations with quotas and policies
 - **Includes**:
@@ -148,6 +179,54 @@ If you prefer to run steps individually:
   - Resource quotas
   - Limit ranges
   - Network policies
+
+### 5. OpenShift AI
+- **Location**: `openshift-ai/`
+- **Purpose**: AI/ML platform for model development and serving
+- **Includes**:
+  - RHODS operator subscription
+  - DataScienceCluster configuration
+  - Jupyter notebooks
+  - Model serving (KServe, ModelMesh)
+  - Data Science Pipelines
+  - Distributed training (CodeFlare, Ray)
+
+### 6. Service Mesh
+- **Location**: `service-mesh/`
+- **Purpose**: Enterprise service mesh based on Istio
+- **Includes**:
+  - Service Mesh operator (Istio)
+  - Kiali operator (observability)
+  - Jaeger operator (distributed tracing)
+  - Elasticsearch operator (tracing storage)
+  - istio-system namespace
+
+### 7. Serverless
+- **Location**: `serverless/`
+- **Purpose**: Kubernetes-native serverless platform
+- **Includes**:
+  - OpenShift Serverless operator
+  - Knative Serving support
+  - Knative Eventing support
+  - Auto-scaling and scale-to-zero
+
+### 8. AMQ Broker
+- **Location**: `amq-broker/`
+- **Purpose**: Enterprise messaging platform (Apache ActiveMQ Artemis)
+- **Includes**:
+  - AMQ Broker operator
+  - Multi-protocol support (AMQP, MQTT, STOMP, OpenWire)
+  - High availability clustering
+  - Message persistence
+
+### 9. Elasticsearch
+- **Location**: `elasticsearch/`
+- **Purpose**: Search and analytics engine
+- **Includes**:
+  - ECK (Elastic Cloud on Kubernetes) operator
+  - Elasticsearch cluster management
+  - Kibana support
+  - Full-text search and analytics
 
 ## Quick Start - Complete Workflow
 
