@@ -9,7 +9,7 @@ data:
   app-config-rhdh.yaml: |
     app:
       title: Red Hat Developer Hub
-      baseUrl: https://backstage-developer-hub-rhdh.apps-crc.testing
+      baseUrl: https://backstage-developer-hub-rhdh.apps.cluster-52rbx.52rbx.sandbox5350.opentlc.com
 
     organization:
       name: My Organization
@@ -18,9 +18,9 @@ data:
       auth:
         keys:
           - secret: ${BACKEND_SECRET}
-      baseUrl: https://backstage-developer-hub-rhdh.apps-crc.testing
+      baseUrl: https://backstage-developer-hub-rhdh.apps.cluster-52rbx.52rbx.sandbox5350.opentlc.com
       cors:
-        origin: https://backstage-developer-hub-rhdh.apps-crc.testing
+        origin: https://backstage-developer-hub-rhdh.apps.cluster-52rbx.52rbx.sandbox5350.opentlc.com
         methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
         credentials: true
       database:
@@ -30,6 +30,26 @@ data:
           port: ${POSTGRES_PORT}
           user: ${POSTGRES_USER}
           password: ${POSTGRES_PASSWORD}
+
+    # Authentication configuration
+    auth:
+      # Environment variable for the base URL
+      environment: production
+      # Authentication providers
+      providers:
+        # Keycloak OIDC provider
+        oidc:
+          production:
+            metadataUrl: ${KEYCLOAK_BASE_URL}/realms/rhdh/.well-known/openid-configuration
+            clientId: ${KEYCLOAK_CLIENT_ID}
+            clientSecret: ${KEYCLOAK_CLIENT_SECRET}
+            prompt: auto
+            ## Uncomment for additional scopes
+            # scope: 'openid profile email'
+            signIn:
+              resolvers:
+                # Resolves the user entity from the Keycloak token
+                - resolver: preferredUsernameMatchingUserEntityName
 
     # Permission framework configuration
     permission:
