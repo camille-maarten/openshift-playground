@@ -8,6 +8,9 @@ metadata:
   namespace: keycloak
   labels:
     app: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   # Number of Keycloak instances
   instances: 1

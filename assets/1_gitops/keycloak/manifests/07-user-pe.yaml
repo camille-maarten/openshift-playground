@@ -5,6 +5,9 @@ kind: KeycloakUser
 metadata:
   name: pe-user
   namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   labels:
     app: keycloak
     realm: rhdh

@@ -8,6 +8,9 @@ metadata:
   labels:
     app: keycloak
     realm: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   instanceSelector:
     matchLabels:
