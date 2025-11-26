@@ -1,0 +1,38 @@
+---
+# Keycloak Realm for Red Hat Developer Hub
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakRealm
+metadata:
+  name: rhdh-realm
+  namespace: keycloak
+  labels:
+    app: keycloak
+    realm: rhdh
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instanceSelector:
+    matchLabels:
+      app: keycloak
+  realm:
+    id: rhdh
+    realm: rhdh
+    enabled: true
+    displayName: "Red Hat Developer Hub"
+    displayNameHtml: "<b>Red Hat Developer Hub</b>"
+    # Realm settings
+    registrationAllowed: false
+    loginWithEmailAllowed: true
+    duplicateEmailsAllowed: false
+    resetPasswordAllowed: true
+    editUsernameAllowed: false
+    bruteForceProtected: true
+    # Session settings
+    ssoSessionIdleTimeout: 1800
+    ssoSessionMaxLifespan: 36000
+    # Token settings
+    accessTokenLifespan: 300
+    accessTokenLifespanForImplicitFlow: 900
+    # Email settings (optional - configure if you want to send emails)
+    smtpServer: {}

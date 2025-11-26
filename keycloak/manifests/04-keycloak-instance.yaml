@@ -1,0 +1,34 @@
+---
+# Keycloak Instance
+# This creates a running Keycloak server instance
+apiVersion: keycloak.org/v1alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+  labels:
+    app: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  # Number of Keycloak instances
+  instances: 1
+
+  # External access configuration
+  externalAccess:
+    enabled: true
+
+  # PostgreSQL database configuration (optional - uses internal H2 by default)
+  # For production, uncomment and configure external PostgreSQL
+  # externalDatabase:
+  #   enabled: true
+
+  # Resource limits (optional)
+  # resources:
+  #   requests:
+  #     memory: "512Mi"
+  #     cpu: "500m"
+  #   limits:
+  #     memory: "1Gi"
+  #     cpu: "1000m"

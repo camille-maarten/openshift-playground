@@ -1,0 +1,17 @@
+---
+# Keycloak Admin Credentials Secret
+# The operator reads this secret to set admin credentials during instance creation
+# Secret name must be: credential-<keycloak-instance-name>
+apiVersion: v1
+kind: Secret
+metadata:
+  name: credential-keycloak
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  labels:
+    app: keycloak
+type: Opaque
+stringData:
+  ADMIN_USERNAME: "admin"
+  ADMIN_PASSWORD: "keycloak1234!"
