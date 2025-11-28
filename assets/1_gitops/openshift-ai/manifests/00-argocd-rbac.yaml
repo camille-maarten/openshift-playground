@@ -6,10 +6,35 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 rules:
+  # Permission to manage DataScienceCluster resources
   - apiGroups:
       - datasciencecluster.opendatahub.io
     resources:
       - datascienceclusters
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  # Permission to manage OAuth configuration
+  - apiGroups:
+      - config.openshift.io
+    resources:
+      - oauths
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+      - patch
+  # Permission to manage user groups
+  - apiGroups:
+      - user.openshift.io
+    resources:
+      - groups
     verbs:
       - get
       - list
@@ -29,6 +54,45 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: argocd-openshift-ai-manager
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+---
+# Role to manage secrets in openshift-config namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: argocd-openshift-config-manager
+  namespace: openshift-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+---
+# RoleBinding to grant ArgoCD access to manage secrets in openshift-config
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-openshift-config-manager
+  namespace: openshift-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argocd-openshift-config-manager
 subjects:
   - kind: ServiceAccount
     name: openshift-gitops-argocd-application-controller

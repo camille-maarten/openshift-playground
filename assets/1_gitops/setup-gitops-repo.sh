@@ -264,7 +264,7 @@ setup_local_repo() {
         git config user.email "gitops@playground.local"
     fi
 
-    # Add .gitignore if it doesn't exist
+    # Add .gitignore if it doesn't exist, or update it
     if [ ! -f ".gitignore" ]; then
         cat > .gitignore <<EOF
 # Temporary files
@@ -283,8 +283,19 @@ Thumbs.db
 
 # Backup files
 *.bak
+
+# Test output directory
+test/output/
 EOF
         print_info "Created .gitignore file"
+    else
+        # Add test/output if not already there
+        if ! grep -q "test/output" .gitignore 2>/dev/null; then
+            echo "" >> .gitignore
+            echo "# Test output directory" >> .gitignore
+            echo "test/output/" >> .gitignore
+            print_info "Updated .gitignore to exclude test/output"
+        fi
     fi
 
     print_success "Local repository setup complete"
@@ -304,7 +315,8 @@ update_argocd_repo_urls() {
 
     # Find all ArgoCD Application YAML files
     # This includes playground-apps.yaml and all files in the apps/ directory
-    ARGOCD_APP_FILES=$(find . -type f \( -name "playground-apps.yaml" -o -path "*/apps/*.yaml" \) 2>/dev/null)
+    # Exclude test directory to avoid processing test output files
+    ARGOCD_APP_FILES=$(find . -type f \( -name "playground-apps.yaml" -o -path "*/apps/*.yaml" \) ! -path "*/test/*" 2>/dev/null)
 
     if [ -z "$ARGOCD_APP_FILES" ]; then
         print_warning "No ArgoCD Application YAML files found"
@@ -317,19 +329,26 @@ update_argocd_repo_urls() {
         if [ -f "$file" ]; then
             print_info "Updating: $file"
 
-            # Replace GITEA_URL placeholder with base Gitea URL (without repo path)
-            # Templates include the repo path, so we only replace with base URL
-            GITEA_BASE_URL="https://${GITEA_ROUTE}"
-            sed -i.bak "s|GITEA_URL|${GITEA_BASE_URL}|g" "$file"
+            # Strategy: Replace ALL repoURL lines to ensure consistency
+            # This is simpler and more reliable than trying to detect what needs changing
 
-            # Also handle any legacy patterns
-            sed -i.bak "s|repoURL:.*github.com.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
+            # Step 1: Replace GITEA_URL placeholder with full URL (including https://)
+            sed -i.bak "s|GITEA_URL|https://${GITEA_ROUTE}|g" "$file"
+
+            # Step 2: Replace any existing repoURL line that references playground-gitops
+            # This handles old cluster URLs, GitHub URLs, placeholder URLs, etc.
+            # Pattern: Find lines with "repoURL:" that contain "playground-gitops.git"
+            # Replace the entire URL with the correct one
+            sed -i.bak "s|repoURL: https://[^/]*/[^/]*/playground-gitops\.git|repoURL: ${TARGET_REPO_URL}|g" "$file"
+
+            # Step 3: Also handle URLs without https:// (in case of template with just hostname)
+            sed -i.bak "s|repoURL: [^/]*\.apps\.[^/]*/admin/playground-gitops\.git|repoURL: ${TARGET_REPO_URL}|g" "$file"
+
+            # Step 4: Handle GitHub or other external URLs if present
+            sed -i.bak "s|repoURL:.*github.com.*/playground-gitops.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
             sed -i.bak "s|repoURL:.*YOUR_ORG/YOUR_REPO.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
 
-            # Replace any existing repoURL (including old Gitea URLs from other clusters)
-            sed -i.bak "s|repoURL: https://.*|repoURL: ${TARGET_REPO_URL}|g" "$file"
-
-            # Fix the path field - remove assets/1_gitops/ prefix since we're pushing from that directory
+            # Step 5: Fix the path field - remove assets/1_gitops/ prefix since we're pushing from that directory
             # The repository root in Gitea IS assets/1_gitops/, so paths should be relative to that
             sed -i.bak "s|path: assets/1_gitops/|path: |g" "$file"
 
@@ -460,11 +479,10 @@ restore_template_files() {
 
         cd "${PARENT_REPO}"
 
-        # Restore the template files from the main repository
-        git restore assets/1_gitops/playground-apps.yaml \
-                   assets/1_gitops/apps/01-playground-namespaces.yaml \
-                   assets/1_gitops/apps/02-kafka-operator.yaml \
-                   assets/1_gitops/apps/03-developer-hub.yaml 2>/dev/null || true
+        # Restore ALL template files from the main repository
+        # Find all ArgoCD app files and restore them
+        git restore assets/1_gitops/playground-apps.yaml 2>/dev/null || true
+        git restore assets/1_gitops/apps/*.yaml 2>/dev/null || true
 
         print_success "Template files restored"
     else

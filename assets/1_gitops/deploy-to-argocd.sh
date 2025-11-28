@@ -246,8 +246,8 @@ create_environment_config() {
     # Get Elasticsearch ECK Operator version
     ELASTICSEARCH_OPERATOR_VERSION=$(oc get csv -n elastic-system -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep "Elasticsearch (ECK) Operator" | head -1 || echo "N/A")
 
-    # Get Keycloak/RHSSO Operator version
-    KEYCLOAK_OPERATOR_VERSION=$(oc get csv -n keycloak -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep -E "Red Hat Single Sign-On|RHSSO Operator" | head -1 || echo "N/A")
+    # Get Keycloak/RHBK Operator version
+    KEYCLOAK_OPERATOR_VERSION=$(oc get csv -n keycloak -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep -E "Red Hat Build of Keycloak|RHBK Operator" | head -1 || echo "N/A")
 
     # Get Gitea route
     GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
@@ -277,7 +277,7 @@ This file contains configuration information for platform components deployed vi
 ║ Service Mesh 3            ║ ${SERVICE_MESH_VERSION}                                   ║
 ║ Jaeger Operator           ║ ${JAEGER_OPERATOR_VERSION}                                ║
 ║ Elasticsearch (ECK)       ║ ${ELASTICSEARCH_OPERATOR_VERSION}                         ║
-║ Keycloak/RHSSO            ║ ${KEYCLOAK_OPERATOR_VERSION}                              ║
+║ Keycloak/RHBK             ║ ${KEYCLOAK_OPERATOR_VERSION}                              ║
 ╚═══════════════════════════╩═══════════════════════════════════════════════════════════╝
 \`\`\`
 

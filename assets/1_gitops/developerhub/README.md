@@ -260,7 +260,100 @@ oc get group rhdh-developers -o yaml
 
 2. Access Developer Hub in your browser
 
-3. Log in using OpenShift OAuth (click "Log in via OpenShift")
+3. **Log in using Keycloak SSO** (recommended) or OpenShift OAuth
+
+## SSO Integration with Keycloak
+
+Developer Hub is pre-configured to use Keycloak for Single Sign-On (SSO) authentication using OpenID Connect (OIDC).
+
+### Default SSO Credentials
+
+- **Username**: `pe-user`
+- **Password**: `rhdh1234!`
+- **Realm**: `rhdh`
+
+### SSO Configuration
+
+The SSO integration is automatically configured when deploying via `run_complete.sh` or can be manually configured using:
+
+```bash
+cd assets/1_gitops
+./update-keycloak-rhdh-config.sh
+```
+
+This script automatically:
+1. Gets Keycloak and Developer Hub routes from the cluster
+2. Updates Keycloak realm redirect URIs
+3. Updates Developer Hub configuration with correct Keycloak URLs
+4. Triggers ArgoCD sync for both applications
+
+### Template Variables
+
+The configuration uses template variables that are replaced with actual cluster routes:
+
+| Variable | File | Purpose |
+|----------|------|---------|
+| `RHDH_BASE_URL` | `04-app-config-configmap.yaml` | Developer Hub base URL |
+| `KEYCLOAK_BASE_URL` | `06-secrets.yaml` | Keycloak OIDC issuer URL |
+| `RHDH_BASE_URL` | `../keycloak/manifests/05-realm-import-rhdh.yaml` | Redirect URIs in Keycloak |
+
+### Manual SSO Verification
+
+1. **Check Keycloak configuration**:
+```bash
+# Get Keycloak admin credentials
+KEYCLOAK_URL=$(oc get route keycloak-ingress -n keycloak -o jsonpath='{.spec.host}')
+KEYCLOAK_PASS=$(oc get secret keycloak-initial-admin -n keycloak -o jsonpath='{.data.password}' | base64 -d)
+
+echo "Keycloak Admin: https://${KEYCLOAK_URL}/admin"
+echo "Username: admin"
+echo "Password: ${KEYCLOAK_PASS}"
+```
+
+2. **Verify redirect URIs in Keycloak**:
+   - Log in to Keycloak admin console
+   - Navigate to Realms → rhdh → Clients → rhdh
+   - Check that "Valid redirect URIs" includes:
+     - `https://<rhdh-route>/*`
+     - `https://<rhdh-route>/api/auth/oidc/handler/frame`
+
+3. **Test SSO login**:
+   - Access Developer Hub
+   - Click "Sign in"
+   - You should be redirected to Keycloak login page
+   - Enter `pe-user` / `rhdh1234!`
+   - You should be redirected back to Developer Hub and logged in
+
+### Troubleshooting SSO
+
+**Issue: Redirect loop or "Invalid redirect URI"**
+
+Solution: Update redirect URIs in Keycloak:
+```bash
+cd assets/1_gitops
+./update-keycloak-rhdh-config.sh
+```
+
+**Issue: OIDC configuration error**
+
+Check that Keycloak base URL is correct in Developer Hub secrets:
+```bash
+oc get secret rhdh-secrets -n rhdh -o jsonpath='{.data.KEYCLOAK_BASE_URL}' | base64 -d
+```
+
+Should output: `https://keycloak-ingress-keycloak.apps.cluster-xxx...`
+
+**Issue: Cannot access Keycloak**
+
+Verify Keycloak route exists and is accessible:
+```bash
+oc get route keycloak-ingress -n keycloak
+curl -k https://$(oc get route keycloak-ingress -n keycloak -o jsonpath='{.spec.host}')/realms/rhdh/.well-known/openid-configuration
+```
+
+For more SSO configuration details, see:
+- [Keycloak SSO Documentation](../keycloak/README.md#sso-integration-with-red-hat-developer-hub)
+- [update-keycloak-rhdh-config.sh script](../update-keycloak-rhdh-config.sh)
 
 ## Troubleshooting
 

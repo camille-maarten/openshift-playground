@@ -189,11 +189,117 @@ run_gitops_deployment() {
 }
 
 # ============================================================================
-# STEP 3: RESTORE GITHUB REMOTE
+# STEP 3: WAIT FOR ROUTES AND CONFIGURE KEYCLOAK/RHDH
+# ============================================================================
+
+wait_for_routes() {
+    print_header "Step 3: Waiting for Routes to be Created"
+
+    print_info "This will wait for:"
+    print_info "  - Keycloak route to be available"
+    print_info "  - Developer Hub route to be available"
+    echo ""
+
+    local MAX_WAIT=600  # 10 minutes
+    local WAIT_INTERVAL=10
+    local elapsed=0
+
+    # Wait for Keycloak route
+    print_step "Waiting for Keycloak route..."
+    while [ $elapsed -lt $MAX_WAIT ]; do
+        if oc get route -n keycloak &> /dev/null; then
+            KEYCLOAK_ROUTE=$(oc get route -n keycloak -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo "")
+            if [ -n "$KEYCLOAK_ROUTE" ]; then
+                print_success "Keycloak route found: ${KEYCLOAK_ROUTE}"
+                break
+            fi
+        fi
+
+        if [ $elapsed -gt 0 ]; then
+            print_info "Still waiting for Keycloak route... (${elapsed}s elapsed)"
+        fi
+        sleep $WAIT_INTERVAL
+        elapsed=$((elapsed + WAIT_INTERVAL))
+    done
+
+    if [ -z "$KEYCLOAK_ROUTE" ]; then
+        print_warning "Keycloak route not found after ${MAX_WAIT}s"
+        print_info "Skipping Keycloak/RHDH configuration"
+        return 1
+    fi
+
+    # Wait for Developer Hub route
+    print_step "Waiting for Developer Hub route..."
+    elapsed=0
+    while [ $elapsed -lt $MAX_WAIT ]; do
+        if oc get route backstage-developer-hub -n rhdh &> /dev/null; then
+            RHDH_ROUTE=$(oc get route backstage-developer-hub -n rhdh -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+            if [ -n "$RHDH_ROUTE" ]; then
+                print_success "Developer Hub route found: ${RHDH_ROUTE}"
+                break
+            fi
+        fi
+
+        if [ $elapsed -gt 0 ]; then
+            print_info "Still waiting for Developer Hub route... (${elapsed}s elapsed)"
+        fi
+        sleep $WAIT_INTERVAL
+        elapsed=$((elapsed + WAIT_INTERVAL))
+    done
+
+    if [ -z "$RHDH_ROUTE" ]; then
+        print_warning "Developer Hub route not found after ${MAX_WAIT}s"
+        print_info "Skipping Keycloak/RHDH configuration"
+        return 1
+    fi
+
+    print_success "All routes are available"
+    return 0
+}
+
+# ============================================================================
+# STEP 4: CONFIGURE KEYCLOAK AND RHDH INTEGRATION
+# ============================================================================
+
+configure_keycloak_rhdh() {
+    print_header "Step 4: Configuring Keycloak and Developer Hub Integration"
+
+    print_info "This will:"
+    print_info "  - Update Keycloak configuration with cluster routes"
+    print_info "  - Update Developer Hub OIDC configuration"
+    print_info "  - Enable SSO login with Keycloak"
+    echo ""
+
+    if [ ! -f "${GITOPS_DIR}/update-keycloak-rhdh-config.sh" ]; then
+        print_error "Keycloak/RHDH config script not found: ${GITOPS_DIR}/update-keycloak-rhdh-config.sh"
+        print_warning "Skipping Keycloak/RHDH configuration"
+        return 0
+    fi
+
+    print_step "Running update-keycloak-rhdh-config.sh..."
+
+    cd "${GITOPS_DIR}"
+
+    # Make sure script is executable
+    chmod +x update-keycloak-rhdh-config.sh
+
+    # Run the configuration script
+    if ./update-keycloak-rhdh-config.sh; then
+        print_success "Keycloak and Developer Hub configured for SSO"
+    else
+        print_warning "Keycloak/RHDH configuration had issues (non-critical)"
+    fi
+
+    # Return to script directory
+    cd "${SCRIPT_DIR}"
+}
+
+# ============================================================================
+# STEP 5: RESTORE GITHUB REMOTE
 # ============================================================================
 
 run_restore_github_remote() {
-    print_header "Step 3: Restore GitHub Remote for Development"
+    print_header "Step 5: Restore GitHub Remote for Development"
 
     print_info "This will:"
     print_info "  - Remove Gitea remote (used by ArgoCD)"
@@ -234,8 +340,14 @@ display_final_summary() {
     echo "  ✓ OpenShift GitOps (ArgoCD)"
     echo "  ✓ Gitea (Git server)"
     echo "  ✓ Red Hat Developer Hub"
+    echo "  ✓ Red Hat Build of Keycloak"
     echo "  ✓ AMQ Streams (Kafka) operator"
     echo "  ✓ Playground namespace with resource quotas"
+    echo ""
+    echo "SSO Configuration:"
+    echo "  ✓ Keycloak integrated with Developer Hub"
+    echo "  ✓ OIDC authentication enabled"
+    echo "  ✓ Test user: pe-user (password: rhdh1234!)"
     echo ""
     echo "Configuration files created:"
     echo "  📄 info/environment_config_gitops.md    - GitOps infrastructure details"
@@ -259,10 +371,16 @@ display_final_summary() {
     echo "  # Get Gitea URL"
     echo "  oc get route gitea -n gitea -o jsonpath='https://{.spec.host}'"
     echo ""
+    echo "  # Get Keycloak URL"
+    echo "  oc get route -n keycloak -o jsonpath='https://{.items[0].spec.host}'"
+    echo ""
+    echo "  # Get Keycloak admin password"
+    echo "  oc get secret keycloak-initial-admin -n keycloak -o jsonpath='{.data.password}' | base64 -d"
+    echo ""
     echo "Next steps:"
     echo "  1. Access ArgoCD console to monitor deployments"
     echo "  2. Check info/environment_config_platform.md for all details"
-    echo "  3. Access Developer Hub to start using the platform"
+    echo "  3. Access Developer Hub and log in with Keycloak SSO (pe-user / rhdh1234!)"
     echo ""
 
     print_success "Setup complete! 🎉"
@@ -293,9 +411,11 @@ main() {
     echo "The following steps will be executed:"
     echo "  1. Initial infrastructure setup (Gitea, GitOps)"
     echo "  2. GitOps repository upload and ArgoCD deployment"
-    echo "  3. GitHub remote restoration for development"
+    echo "  3. Wait for routes and configure Keycloak/RHDH SSO"
+    echo "  4. Configure Keycloak and Developer Hub integration"
+    echo "  5. GitHub remote restoration for development"
     echo ""
-    echo "Estimated time: 10-15 minutes"
+    echo "Estimated time: 15-20 minutes"
     echo ""
 
     # Record start time
@@ -305,6 +425,12 @@ main() {
     check_prerequisites
     run_initial_setup
     run_gitops_deployment
+
+    # Wait for routes and configure Keycloak/RHDH (non-critical, can fail gracefully)
+    if wait_for_routes; then
+        configure_keycloak_rhdh
+    fi
+
     run_restore_github_remote
 
     # Calculate duration

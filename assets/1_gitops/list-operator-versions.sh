@@ -77,7 +77,7 @@ get_operator_pattern_for_app() {
         "service-mesh") echo "Red Hat OpenShift Service Mesh 3" ;;
         "jaeger") echo "Community Jaeger Operator" ;;
         "elasticsearch") echo "Elasticsearch (ECK) Operator" ;;
-        "keycloak") echo "Red Hat Single Sign-On" ;;
+        "keycloak") echo "Red Hat Build of Keycloak" ;;
         "amq-broker") echo "Red Hat Integration - AMQ Broker" ;;
         *) echo "" ;;
     esac

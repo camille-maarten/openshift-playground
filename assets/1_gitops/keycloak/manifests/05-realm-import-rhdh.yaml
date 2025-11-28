@@ -1,0 +1,128 @@
+---
+# Keycloak Realm Import for Red Hat Developer Hub
+# This replaces the old KeycloakRealm, KeycloakClient, and KeycloakUser resources
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: rhdh-realm-import
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  labels:
+    app: keycloak
+spec:
+  keycloakCRName: keycloak
+  realm:
+    id: rhdh
+    realm: rhdh
+    enabled: true
+    displayName: "Red Hat Developer Hub"
+    displayNameHtml: "<b>Red Hat Developer Hub</b>"
+
+    # Realm settings
+    registrationAllowed: false
+    loginWithEmailAllowed: true
+    duplicateEmailsAllowed: false
+    resetPasswordAllowed: true
+    editUsernameAllowed: false
+    bruteForceProtected: true
+
+    # Session settings
+    ssoSessionIdleTimeout: 1800
+    ssoSessionMaxLifespan: 36000
+
+    # Token settings
+    accessTokenLifespan: 300
+    accessTokenLifespanForImplicitFlow: 900
+
+    # Clients
+    clients:
+      - clientId: rhdh
+        name: "Red Hat Developer Hub"
+        description: "OIDC client for Red Hat Developer Hub authentication"
+        protocol: openid-connect
+        publicClient: false
+        directAccessGrantsEnabled: true
+        standardFlowEnabled: true
+        implicitFlowEnabled: false
+        serviceAccountsEnabled: false
+        authorizationServicesEnabled: false
+
+        # Redirect URIs - TEMPLATE: These will be updated by deploy script
+        redirectUris:
+          - "RHDH_BASE_URL/*"
+          - "RHDH_BASE_URL/api/auth/oidc/handler/frame"
+
+        # Web origins
+        webOrigins:
+          - "RHDH_BASE_URL"
+
+        # Base URL
+        baseUrl: "RHDH_BASE_URL"
+
+        # Client authentication
+        clientAuthenticatorType: client-secret
+
+        # Default client scopes
+        defaultClientScopes:
+          - profile
+          - email
+          - roles
+
+        # Optional client scopes
+        optionalClientScopes:
+          - address
+          - phone
+
+        # Protocol mappers for user attributes
+        protocolMappers:
+          - name: username
+            protocol: openid-connect
+            protocolMapper: oidc-usermodel-property-mapper
+            consentRequired: false
+            config:
+              userinfo.token.claim: "true"
+              user.attribute: username
+              id.token.claim: "true"
+              access.token.claim: "true"
+              claim.name: preferred_username
+              jsonType.label: String
+
+          - name: email
+            protocol: openid-connect
+            protocolMapper: oidc-usermodel-property-mapper
+            consentRequired: false
+            config:
+              userinfo.token.claim: "true"
+              user.attribute: email
+              id.token.claim: "true"
+              access.token.claim: "true"
+              claim.name: email
+              jsonType.label: String
+
+          - name: "full name"
+            protocol: openid-connect
+            protocolMapper: oidc-full-name-mapper
+            consentRequired: false
+            config:
+              userinfo.token.claim: "true"
+              id.token.claim: "true"
+              access.token.claim: "true"
+
+    # Users
+    users:
+      - username: pe-user
+        firstName: Platform
+        lastName: Engineer
+        email: pe-user@example.com
+        enabled: true
+        emailVerified: true
+        credentials:
+          - type: password
+            value: rhdh1234!
+            temporary: false
+        attributes:
+          locale:
+            - en
+        requiredActions: []

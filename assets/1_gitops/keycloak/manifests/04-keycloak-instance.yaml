@@ -1,7 +1,7 @@
 ---
 # Keycloak Instance
-# This creates a running Keycloak server instance
-apiVersion: keycloak.org/v1alpha1
+# This creates a running Keycloak server instance using Red Hat Build of Keycloak
+apiVersion: k8s.keycloak.org/v2alpha1
 kind: Keycloak
 metadata:
   name: keycloak
@@ -15,14 +15,32 @@ spec:
   # Number of Keycloak instances
   instances: 1
 
-  # External access configuration
-  externalAccess:
-    enabled: true
+  # Database configuration - RHBK uses PostgreSQL
+  db:
+    vendor: postgres
+    host: postgres
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
 
-  # PostgreSQL database configuration (optional - uses internal H2 by default)
-  # For production, uncomment and configure external PostgreSQL
-  # externalDatabase:
-  #   enabled: true
+  # Ingress configuration - let OpenShift generate the route automatically
+  ingress:
+    enabled: true
+    className: openshift-default
+
+  # HTTP configuration
+  http:
+    httpEnabled: true
+    # Trust proxy headers from OpenShift router
+    httpsPort: 8443
+
+  # Hostname configuration - uses OpenShift route
+  hostname:
+    strict: false
+    strictBackchannel: false
 
   # Resource limits (optional)
   # resources:
