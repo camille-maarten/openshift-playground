@@ -18,6 +18,8 @@ data:
       auth:
         keys:
           - secret: ${BACKEND_SECRET}
+      session:
+        secret: ${BACKEND_SECRET}
       baseUrl: ${RHDH_BASE_URL}
       cors:
         origin: ${RHDH_BASE_URL}
@@ -44,12 +46,16 @@ data:
             clientId: ${KEYCLOAK_CLIENT_ID}
             clientSecret: ${KEYCLOAK_CLIENT_SECRET}
             prompt: auto
-            ## Uncomment for additional scopes
-            # scope: 'openid profile email'
+            additionalScopes:
+              - profile
+              - email
             signIn:
               resolvers:
                 # Resolves the user entity from the Keycloak token
                 - resolver: preferredUsernameMatchingUserEntityName
+
+    # Sign-in page configuration
+    signInPage: oidc
 
     # Permission framework configuration
     permission:
