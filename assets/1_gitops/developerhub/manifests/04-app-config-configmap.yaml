@@ -18,8 +18,19 @@ data:
       auth:
         keys:
           - secret: ${BACKEND_SECRET}
+      # Session configuration for OIDC authentication
       session:
         secret: ${BACKEND_SECRET}
+        # Use database-backed session store for production
+        store:
+          type: database
+        # Cookie configuration for secure session handling
+        cookie:
+          secure: true
+          sameSite: 'lax'
+          httpOnly: true
+          path: '/'
+          maxAge: 86400000  # 24 hours
       baseUrl: ${RHDH_BASE_URL}
       cors:
         origin: ${RHDH_BASE_URL}
@@ -46,6 +57,8 @@ data:
             clientId: ${KEYCLOAK_CLIENT_ID}
             clientSecret: ${KEYCLOAK_CLIENT_SECRET}
             prompt: auto
+            # Callback URL for OIDC authentication
+            callbackUrl: ${RHDH_BASE_URL}/api/auth/oidc/handler/frame
             additionalScopes:
               - profile
               - email
