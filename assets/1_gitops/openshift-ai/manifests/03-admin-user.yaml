@@ -11,8 +11,11 @@ metadata:
 type: Opaque
 stringData:
   # admin:rhoai1234!
-  # Generated with: htpasswd -nbB admin rhoai1234!
-  htpasswd: "admin:$2y$05$ra39wOW950ufzKuDrtgBTeQvbgxWCpsWB25n6tPPQtzqkemAMqWfO"
+  # os-admin:openshift1234!
+  # Generated with: htpasswd -nbB <username> <password>
+  htpasswd: |
+    admin:$2y$05$ra39wOW950ufzKuDrtgBTeQvbgxWCpsWB25n6tPPQtzqkemAMqWfO
+    os-admin:$2y$05$qpiVuvnyl6ksVY2hzulv..XP6bqi8e6hE/GyE0SFaAuqFOcagwbQe
 ---
 # Group for RHOAI administrators
 apiVersion: user.openshift.io/v1
@@ -23,6 +26,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "6"
 users:
   - admin
+  - os-admin
 ---
 # ClusterRoleBinding to grant cluster-admin access to rhods-admins group
 apiVersion: rbac.authorization.k8s.io/v1

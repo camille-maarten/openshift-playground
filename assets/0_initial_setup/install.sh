@@ -270,6 +270,35 @@ echo "    - admin-user / argocd1234!"
 echo ""
 
 # ============================================================================
+# Create Playground Configuration ConfigMap
+# ============================================================================
+
+print_info "Creating playground configuration..."
+
+# Get the cluster domain
+CLUSTER_DOMAIN=$(oc get ingresses.config/cluster -o jsonpath='{.spec.domain}' 2>/dev/null || echo "apps.example.com")
+print_info "Cluster domain: ${CLUSTER_DOMAIN}"
+
+# Create ConfigMap with cluster domain
+cat > /tmp/playground-config-configmap.yaml <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: playground-config
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: openshift-gitops
+data:
+  BASE_URL: "${CLUSTER_DOMAIN}"
+EOF
+
+oc apply -f /tmp/playground-config-configmap.yaml
+rm -f /tmp/playground-config-configmap.yaml
+
+print_success "Playground configuration created with BASE_URL: ${CLUSTER_DOMAIN}"
+echo ""
+
+# ============================================================================
 # PART 2: Installing Gitea (if selected)
 # ============================================================================
 

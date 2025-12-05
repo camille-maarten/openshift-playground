@@ -3,13 +3,14 @@
 # ============================================================================
 # Update Keycloak and RHDH Configuration Script
 # ============================================================================
-# This script updates the Developer Hub and Keycloak configurations with
-# actual cluster routes after deployment.
+# This script updates the cluster-specific URLs in the Gitea repository:
+# - ArgoCD Application repository URLs (from playground-config ConfigMap)
+# - Developer Hub and Keycloak configurations
+# - OAuth client redirect URIs
 #
 # Prerequisites:
 # - oc CLI installed and logged in
-# - Keycloak deployed and route available
-# - Developer Hub deployed and route available
+# - playground-config ConfigMap created in openshift-gitops namespace
 # - Gitea repository with playground-gitops
 #
 # Usage:
@@ -77,42 +78,43 @@ check_prerequisites() {
 }
 
 # ============================================================================
-# GET ROUTE URLS
+# GET BASE URL FROM CONFIGMAP AND CONSTRUCT URLS
 # ============================================================================
 
 get_route_urls() {
-    print_header "Getting Cluster Routes"
+    print_header "Getting Cluster Configuration"
 
-    # Get RHDH route
-    print_info "Getting Developer Hub route..."
-    RHDH_ROUTE=$(oc get route backstage-developer-hub -n rhdh -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+    # Get BASE_URL from playground-config ConfigMap
+    print_info "Reading BASE_URL from playground-config ConfigMap..."
+    BASE_URL=$(oc get configmap playground-config -n openshift-gitops -o jsonpath='{.data.BASE_URL}' 2>/dev/null || echo "")
 
-    if [ -z "$RHDH_ROUTE" ]; then
-        print_error "Could not find Developer Hub route in namespace rhdh"
-        print_info "Make sure Developer Hub is deployed"
+    if [ -z "$BASE_URL" ]; then
+        print_error "Could not find playground-config ConfigMap in openshift-gitops namespace"
+        print_info "Make sure the initial setup has been completed"
+        print_info "Run: assets/0_initial_setup/install.sh"
         exit 1
     fi
 
-    RHDH_BASE_URL="https://${RHDH_ROUTE}"
-    print_success "Developer Hub URL: ${RHDH_BASE_URL}"
+    print_success "Base URL from ConfigMap: ${BASE_URL}"
 
-    # Get Keycloak route - try different route names
-    print_info "Getting Keycloak route..."
-    KEYCLOAK_ROUTE=$(oc get route -n keycloak -o jsonpath='{.items[?(@.spec.port.targetPort=="https")].spec.host}' 2>/dev/null | awk '{print $1}' || echo "")
+    # Construct service URLs from BASE_URL
+    # Format: https://<route-name>.<namespace>.<BASE_URL>
+    RHDH_BASE_URL="https://backstage-developer-hub-rhdh.${BASE_URL}"
+    KEYCLOAK_BASE_URL="https://keycloak-keycloak.${BASE_URL}"
 
-    if [ -z "$KEYCLOAK_ROUTE" ]; then
-        # Try to get any route in keycloak namespace
-        KEYCLOAK_ROUTE=$(oc get route -n keycloak -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo "")
-    fi
+    print_info "Constructed Developer Hub URL: ${RHDH_BASE_URL}"
+    print_info "Constructed Keycloak URL: ${KEYCLOAK_BASE_URL}"
 
-    if [ -z "$KEYCLOAK_ROUTE" ]; then
-        print_error "Could not find Keycloak route in namespace keycloak"
-        print_info "Make sure Keycloak is deployed"
+    # Get OpenShift API URL (this remains dynamic as it's not route-based)
+    print_info "Getting OpenShift API URL..."
+    OPENSHIFT_API_URL=$(oc whoami --show-server 2>/dev/null || echo "")
+
+    if [ -z "$OPENSHIFT_API_URL" ]; then
+        print_error "Could not get OpenShift API URL"
         exit 1
     fi
 
-    KEYCLOAK_BASE_URL="https://${KEYCLOAK_ROUTE}"
-    print_success "Keycloak URL: ${KEYCLOAK_BASE_URL}"
+    print_success "OpenShift API URL: ${OPENSHIFT_API_URL}"
 }
 
 # ============================================================================
@@ -160,13 +162,9 @@ get_keycloak_client_secret() {
 update_gitea_repository() {
     print_header "Updating Gitea Repository"
 
-    # Get Gitea route
-    GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
-
-    if [ -z "$GITEA_ROUTE" ]; then
-        print_error "Could not find Gitea route"
-        exit 1
-    fi
+    # Construct Gitea route from BASE_URL
+    GITEA_ROUTE="gitea-gitea.${BASE_URL}"
+    print_info "Gitea route: ${GITEA_ROUTE}"
 
     # Determine script directory
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -187,15 +185,35 @@ update_gitea_repository() {
 
     cd playground-gitops
 
+    # Update ArgoCD Application repository URLs
+    print_info "Updating ArgoCD Application repository URLs..."
+    TARGET_REPO_URL="https://${GITEA_ROUTE}/admin/playground-gitops.git"
+
+    # Find and update all ArgoCD Application YAML files
+    ARGOCD_APP_FILES=$(find . -type f \( -name "playground-apps.yaml" -o -path "*/apps/*.yaml" \) ! -path "*/test/*" 2>/dev/null)
+
+    if [ -n "$ARGOCD_APP_FILES" ]; then
+        while IFS= read -r file; do
+            if [ -f "$file" ]; then
+                # Replace any existing repoURL with the correct one from BASE_URL
+                sed -i.bak "s|repoURL: https://[^/]*/[^/]*/playground-gitops\.git|repoURL: ${TARGET_REPO_URL}|g" "$file"
+                sed -i.bak "s|repoURL: [^/]*\.apps\.[^/]*/admin/playground-gitops\.git|repoURL: ${TARGET_REPO_URL}|g" "$file"
+                rm -f "${file}.bak"
+            fi
+        done <<< "$ARGOCD_APP_FILES"
+        print_success "Updated ArgoCD Application repository URLs to ${TARGET_REPO_URL}"
+    fi
+
     # Update Developer Hub secrets
     print_info "Updating Developer Hub secrets..."
     if [ -f "developerhub/manifests/06-secrets.yaml" ]; then
         # Replace route placeholders with actual URLs
         sed -i.bak "s|https://KEYCLOAK_ROUTE|${KEYCLOAK_BASE_URL}|g" developerhub/manifests/06-secrets.yaml
         sed -i.bak "s|https://RHDH_ROUTE|${RHDH_BASE_URL}|g" developerhub/manifests/06-secrets.yaml
+        sed -i.bak "s|https://OPENSHIFT_API_URL|${OPENSHIFT_API_URL}|g" developerhub/manifests/06-secrets.yaml
         sed -i.bak "s|rhdh-client-secret-change-in-production|${KEYCLOAK_CLIENT_SECRET}|g" developerhub/manifests/06-secrets.yaml
         rm -f developerhub/manifests/06-secrets.yaml.bak
-        print_success "Updated secrets with Keycloak and RHDH URLs"
+        print_success "Updated secrets with Keycloak, RHDH, and OpenShift URLs"
     fi
 
     # Update Keycloak realm import
@@ -207,13 +225,22 @@ update_gitea_repository() {
         print_success "Updated realm import with RHDH URL"
     fi
 
+    # Update OpenShift OAuth client
+    print_info "Updating OpenShift OAuth client..."
+    if [ -f "developerhub/manifests/11-oauth-client.yaml" ]; then
+        # Replace RHDH_BASE_URL placeholder in redirect URIs
+        sed -i.bak "s|RHDH_BASE_URL|${RHDH_BASE_URL}|g" developerhub/manifests/11-oauth-client.yaml
+        rm -f developerhub/manifests/11-oauth-client.yaml.bak
+        print_success "Updated OAuth client with RHDH URL"
+    fi
+
     # Commit and push changes
     print_info "Committing and pushing changes to Gitea..."
     git config user.name "GitOps Admin"
     git config user.email "gitops@example.com"
 
     git add .
-    git commit -m "Update Keycloak and RHDH configuration with cluster routes" || {
+    git commit -m "Update ArgoCD apps, Keycloak and RHDH configuration with cluster routes from ConfigMap" || {
         print_warning "No changes to commit"
         return 0
     }
@@ -250,9 +277,16 @@ sync_argocd_apps() {
 display_summary() {
     print_header "Configuration Summary"
 
-    echo "Updated URLs:"
-    echo "  Developer Hub: ${RHDH_BASE_URL}"
-    echo "  Keycloak:      ${KEYCLOAK_BASE_URL}"
+    echo "Updated URLs (from ConfigMap BASE_URL: ${BASE_URL}):"
+    echo "  Gitea Repository:  https://${GITEA_ROUTE}/admin/playground-gitops"
+    echo "  Developer Hub:     ${RHDH_BASE_URL}"
+    echo "  Keycloak:          ${KEYCLOAK_BASE_URL}"
+    echo ""
+    echo "Updated manifests in Gitea:"
+    echo "  ✓ ArgoCD Application repository URLs (playground-apps.yaml, apps/*.yaml)"
+    echo "  ✓ Developer Hub secrets (Keycloak, RHDH, OpenShift API URLs)"
+    echo "  ✓ Keycloak realm import (RHDH redirect URIs)"
+    echo "  ✓ OpenShift OAuth client (RHDH redirect URIs)"
     echo ""
     echo "Keycloak Admin Console:"
     echo "  URL: ${KEYCLOAK_BASE_URL}/admin"

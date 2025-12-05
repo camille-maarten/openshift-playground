@@ -98,24 +98,28 @@ check_prerequisites() {
 }
 
 # ============================================================================
-# GET GITEA URL
+# GET GITEA URL FROM CONFIGMAP
 # ============================================================================
 
 get_gitea_url() {
     print_header "Getting Gitea URL"
 
-    # Get Gitea route
-    GITEA_ROUTE=$(oc get route gitea -n ${GITEA_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+    # Get BASE_URL from playground-config ConfigMap
+    BASE_URL=$(oc get configmap playground-config -n openshift-gitops -o jsonpath='{.data.BASE_URL}' 2>/dev/null || echo "")
 
-    if [ -z "$GITEA_ROUTE" ]; then
-        print_error "Could not find Gitea route in namespace ${GITEA_NAMESPACE}"
-        print_info "Make sure Gitea is installed and running"
+    if [ -z "$BASE_URL" ]; then
+        print_error "Could not find playground-config ConfigMap in openshift-gitops namespace"
+        print_info "Make sure the initial setup has been completed"
+        print_info "Run: assets/0_initial_setup/install.sh"
         exit 1
     fi
 
+    # Construct Gitea URL from BASE_URL
+    GITEA_ROUTE="gitea-${GITEA_NAMESPACE}.${BASE_URL}"
     GITEA_URL="https://${GITEA_ROUTE}"
     GITEA_API_URL="${GITEA_URL}/api/v1"
 
+    print_success "Base URL from ConfigMap: ${BASE_URL}"
     print_success "Gitea URL: ${GITEA_URL}"
 }
 

@@ -1,0 +1,16 @@
+---
+apiVersion: oauth.openshift.io/v1
+kind: OAuthClient
+metadata:
+  name: rhdh-oauth-client
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+# The secret is the client secret for OAuth
+secret: rhdh-oauth-secret-change-in-production
+# Redirect URIs where the OAuth server can redirect after authentication
+# TEMPLATE: RHDH_BASE_URL will be replaced by the deployment script
+redirectURIs:
+  - "RHDH_BASE_URL/api/auth/openshift/handler/frame"
+  - "RHDH_BASE_URL"
+# Grant method determines how the OAuth authorization is handled
+grantMethod: prompt

@@ -168,6 +168,24 @@ run_deploy_to_argocd() {
 }
 
 # ============================================================================
+# UPDATE CLUSTER URLS IN GITEA
+# ============================================================================
+
+update_cluster_urls() {
+    print_step "3" "Update Cluster-Specific URLs in Gitea"
+
+    print_info "Running update-keycloak-rhdh-config.sh to fix all cluster URLs..."
+    echo ""
+
+    if bash "${SCRIPT_DIR}/update-keycloak-rhdh-config.sh"; then
+        print_success "Cluster URLs updated successfully in Gitea repository"
+    else
+        print_warning "Failed to update cluster URLs (continuing anyway)"
+        print_info "You can run manually later: ./update-keycloak-rhdh-config.sh"
+    fi
+}
+
+# ============================================================================
 # VERIFY DEPLOYMENT
 # ============================================================================
 
@@ -207,9 +225,16 @@ display_summary() {
     ARGOCD_NAMESPACE="openshift-gitops"
     GITEA_NAMESPACE="gitea"
 
-    # Get URLs
-    ARGOCD_URL=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available")
-    GITEA_URL=$(oc get route gitea -n ${GITEA_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available")
+    # Get URLs from ConfigMap
+    BASE_URL=$(oc get configmap playground-config -n openshift-gitops -o jsonpath='{.data.BASE_URL}' 2>/dev/null || echo "")
+    if [ -n "$BASE_URL" ]; then
+        ARGOCD_URL="openshift-gitops-server-${ARGOCD_NAMESPACE}.${BASE_URL}"
+        GITEA_URL="gitea-${GITEA_NAMESPACE}.${BASE_URL}"
+    else
+        # Fallback to querying routes
+        ARGOCD_URL=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available")
+        GITEA_URL=$(oc get route gitea -n ${GITEA_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available")
+    fi
 
     echo "Summary:"
     echo "  ✓ GitOps manifests uploaded to Gitea"
@@ -257,6 +282,7 @@ main() {
     echo "This script will:"
     echo "  1. Upload all GitOps manifests to Gitea repository"
     echo "  2. Deploy ArgoCD Applications using App-of-Apps pattern"
+    echo "  3. Update cluster-specific URLs in Gitea (ArgoCD apps, Keycloak, RHDH)"
     echo ""
     print_info "Starting automated workflow..."
 
@@ -264,6 +290,7 @@ main() {
     check_prerequisites
     run_setup_gitops_repo
     run_deploy_to_argocd
+    update_cluster_urls
     verify_deployment
     display_summary
 }

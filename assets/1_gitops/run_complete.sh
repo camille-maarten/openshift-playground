@@ -191,11 +191,68 @@ run_gitops_deployment() {
 }
 
 # ============================================================================
-# STEP 3: RESTORE GITHUB REMOTE
+# STEP 3: UPDATE URLS IN GITEA
+# ============================================================================
+
+run_update_urls() {
+    print_header "Step 3: Update Cluster URLs in Gitea"
+
+    print_info "This will:"
+    print_info "  - Wait for routes to be available"
+    print_info "  - Update Keycloak, RHDH, and OpenShift URLs"
+    print_info "  - Push changes to Gitea repository"
+    print_info "  - Trigger ArgoCD sync"
+    echo ""
+
+    if [ ! -f "${GITOPS_DIR}/update-keycloak-rhdh-config.sh" ]; then
+        print_error "URL update script not found: ${GITOPS_DIR}/update-keycloak-rhdh-config.sh"
+        exit 1
+    fi
+
+    print_step "Waiting for routes to be available..."
+
+    # Wait for routes to be created (with timeout)
+    local max_wait=300
+    local wait_time=0
+    local check_interval=10
+
+    while [ $wait_time -lt $max_wait ]; do
+        # Check if key routes exist
+        if oc get route gitea -n gitea &> /dev/null; then
+            print_success "Gitea route is available"
+            break
+        fi
+
+        print_info "Waiting for routes... (${wait_time}s/${max_wait}s)"
+        sleep $check_interval
+        wait_time=$((wait_time + check_interval))
+    done
+
+    if [ $wait_time -ge $max_wait ]; then
+        print_warning "Timeout waiting for routes - continuing anyway"
+    fi
+
+    print_step "Running update-keycloak-rhdh-config.sh..."
+
+    cd "${GITOPS_DIR}"
+
+    # Run the URL update script
+    if ./update-keycloak-rhdh-config.sh; then
+        print_success "URLs updated in Gitea repository"
+    else
+        print_warning "URL update had issues (continuing anyway)"
+    fi
+
+    # Return to script directory
+    cd "${SCRIPT_DIR}"
+}
+
+# ============================================================================
+# STEP 4: RESTORE GITHUB REMOTE
 # ============================================================================
 
 run_restore_github_remote() {
-    print_header "Step 3: Restore GitHub Remote for Development"
+    print_header "Step 4: Restore GitHub Remote for Development"
 
     print_info "This will:"
     print_info "  - Remove Gitea remote (used by ArgoCD)"
@@ -294,7 +351,7 @@ main() {
     echo ""
     echo "The following steps will be executed:"
     echo "  1. Initial infrastructure setup (Gitea, GitOps)"
-    echo "  2. GitOps repository upload and ArgoCD deployment"
+    echo "  2. GitOps repository upload and ArgoCD deployment (includes URL update)"
     echo "  3. GitHub remote restoration for development"
     echo ""
     echo "Estimated time: 10-15 minutes"
@@ -307,6 +364,9 @@ main() {
     check_prerequisites
     run_initial_setup
     run_gitops_deployment
+    # Note: URL updates now happen automatically in run_gitops_deployment (upload-and-deploy.sh)
+    # Uncomment the line below if you want an additional verification pass after all routes are ready
+    # run_update_urls
     run_restore_github_remote
 
     # Calculate duration

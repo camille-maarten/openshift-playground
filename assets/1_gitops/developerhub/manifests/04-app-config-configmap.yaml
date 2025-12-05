@@ -59,8 +59,22 @@ data:
                 # Resolves the user entity from the Keycloak token
                 - resolver: preferredUsernameMatchingUserEntityName
 
-    # Sign-in page configuration
-    signInPage: oidc
+        # OpenShift OAuth provider
+        openshift:
+          production:
+            clientId: ${OPENSHIFT_OAUTH_CLIENT_ID}
+            clientSecret: ${OPENSHIFT_OAUTH_CLIENT_SECRET}
+            # OpenShift API URL (parameterized, will be replaced by script)
+            baseUrl: ${OPENSHIFT_API_URL}
+            # Callback URL for OpenShift OAuth
+            callbackUrl: ${RHDH_BASE_URL}/api/auth/openshift/handler/frame
+            signIn:
+              resolvers:
+                # Resolves the user entity from the OpenShift identity
+                - resolver: usernameMatchingUserEntityName
+
+    # Sign-in page configuration - allow users to choose between providers
+    signInPage: openshift
 
     # Permission framework configuration
     permission:

@@ -91,14 +91,17 @@ check_prerequisites() {
 get_gitea_url() {
     print_header "Getting Gitea Repository URL"
 
-    # Get Gitea route
-    GITEA_ROUTE=$(oc get route gitea -n ${GITEA_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+    # Get BASE_URL from playground-config ConfigMap
+    BASE_URL=$(oc get configmap playground-config -n openshift-gitops -o jsonpath='{.data.BASE_URL}' 2>/dev/null || echo "")
 
-    if [ -z "$GITEA_ROUTE" ]; then
-        print_error "Could not find Gitea route in namespace ${GITEA_NAMESPACE}"
-        print_info "Make sure Gitea is installed and running"
+    if [ -z "$BASE_URL" ]; then
+        print_error "Could not find playground-config ConfigMap in openshift-gitops namespace"
+        print_info "Make sure the initial setup has been completed"
         exit 1
     fi
+
+    # Construct Gitea URL from BASE_URL
+    GITEA_ROUTE="gitea-${GITEA_NAMESPACE}.${BASE_URL}"
 
     REPO_URL="https://${GITEA_ROUTE}/${GITEA_ADMIN_USER}/${REPO_NAME}.git"
 
@@ -180,8 +183,14 @@ sync_applications() {
     if command -v argocd &> /dev/null; then
         print_info "Using ArgoCD CLI to sync applications..."
 
-        # Get ArgoCD server route
-        ARGOCD_ROUTE=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}')
+        # Get ArgoCD server route from ConfigMap
+        BASE_URL=$(oc get configmap playground-config -n openshift-gitops -o jsonpath='{.data.BASE_URL}' 2>/dev/null || echo "")
+        if [ -n "$BASE_URL" ]; then
+            ARGOCD_ROUTE="openshift-gitops-server-openshift-gitops.${BASE_URL}"
+        else
+            # Fallback to querying route
+            ARGOCD_ROUTE=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}')
+        fi
 
         # Login to ArgoCD (using admin user)
         ARGOCD_PASSWORD=$(oc get secret openshift-gitops-cluster -n ${ARGOCD_NAMESPACE} -o jsonpath='{.data.admin\.password}' | base64 -d)
@@ -249,14 +258,20 @@ create_environment_config() {
     # Get Keycloak/RHBK Operator version
     KEYCLOAK_OPERATOR_VERSION=$(oc get csv -n keycloak -o jsonpath='{range .items[*]}{.spec.displayName}{" "}{.spec.version}{"\n"}{end}' 2>/dev/null | grep -E "Red Hat Build of Keycloak|RHBK Operator" | head -1 || echo "N/A")
 
-    # Get Gitea route
-    GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
+    # Get BASE_URL from ConfigMap
+    BASE_URL=$(oc get configmap playground-config -n openshift-gitops -o jsonpath='{.data.BASE_URL}' 2>/dev/null || echo "")
 
-    # Get ArgoCD route
-    ARGOCD_ROUTE=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
-
-    # Get Developer Hub route
-    RHDH_ROUTE=$(oc get route -n rhdh -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo "N/A")
+    # Construct routes from BASE_URL
+    if [ -n "$BASE_URL" ]; then
+        GITEA_ROUTE="gitea-gitea.${BASE_URL}"
+        ARGOCD_ROUTE="openshift-gitops-server-openshift-gitops.${BASE_URL}"
+        RHDH_ROUTE="backstage-developer-hub-rhdh.${BASE_URL}"
+    else
+        # Fallback to querying routes if ConfigMap not found
+        GITEA_ROUTE=$(oc get route gitea -n gitea -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
+        ARGOCD_ROUTE=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "N/A")
+        RHDH_ROUTE=$(oc get route -n rhdh -o jsonpath='{.items[0].spec.host}' 2>/dev/null || echo "N/A")
+    fi
 
     # Create environment_config_platform.md
     cat > "${INFO_DIR}/environment_config_platform.md" <<EOF
@@ -554,8 +569,14 @@ CSV_HEADER
 display_summary() {
     print_header "Deployment Summary"
 
-    # Get ArgoCD URL
-    ARGOCD_URL=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available")
+    # Get ArgoCD URL from ConfigMap
+    BASE_URL=$(oc get configmap playground-config -n openshift-gitops -o jsonpath='{.data.BASE_URL}' 2>/dev/null || echo "")
+    if [ -n "$BASE_URL" ]; then
+        ARGOCD_URL="openshift-gitops-server-openshift-gitops.${BASE_URL}"
+    else
+        # Fallback to querying route
+        ARGOCD_URL=$(oc get route openshift-gitops-server -n ${ARGOCD_NAMESPACE} -o jsonpath='{.spec.host}' 2>/dev/null || echo "Not available")
+    fi
 
     echo "App-of-Apps Pattern Deployed:"
     echo "  Parent App: playground-apps"
@@ -615,11 +636,42 @@ main() {
     # Sync applications
     sync_applications
 
+    # Update cluster URLs in Gitea repository
+    update_cluster_urls
+
     # Create environment configuration file
     create_environment_config
 
     # Display summary
     display_summary
+}
+
+# ============================================================================
+# UPDATE CLUSTER URLS IN GITEA
+# ============================================================================
+
+update_cluster_urls() {
+    print_header "Updating Cluster URLs in Gitea"
+
+    # Get the directory where this script is located
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    print_info "Running update-keycloak-rhdh-config.sh to fix all cluster URLs..."
+    echo ""
+
+    if [ -f "${SCRIPT_DIR}/update-keycloak-rhdh-config.sh" ]; then
+        if bash "${SCRIPT_DIR}/update-keycloak-rhdh-config.sh"; then
+            print_success "Cluster URLs updated successfully in Gitea repository"
+        else
+            print_warning "Failed to update cluster URLs (continuing anyway)"
+            print_info "You can run manually later: ./update-keycloak-rhdh-config.sh"
+        fi
+    else
+        print_warning "update-keycloak-rhdh-config.sh not found, skipping URL update"
+        print_info "You can run manually later if needed"
+    fi
+
+    echo ""
 }
 
 # Run main function

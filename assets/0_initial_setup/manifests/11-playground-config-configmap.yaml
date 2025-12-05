@@ -1,0 +1,12 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: playground-config
+  namespace: openshift-gitops
+  labels:
+    app.kubernetes.io/part-of: openshift-gitops
+data:
+  # Base cluster domain - will be populated during installation
+  # Example: apps.cluster-ncdcf.ncdcf.sandbox6.opentlc.com
+  BASE_URL: "PLACEHOLDER_BASE_URL"
