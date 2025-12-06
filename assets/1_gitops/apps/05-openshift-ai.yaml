@@ -45,3 +45,8 @@ spec:
       jsonPointers:
         - /spec/components/*/managementState
         - /status
+    # Ignore differences for OpenShift User Groups (no schema available)
+    - group: user.openshift.io
+      kind: Group
+      jqPathExpressions:
+        - .users
