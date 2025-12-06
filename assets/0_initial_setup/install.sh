@@ -318,6 +318,16 @@ print_success "Playground configuration created with BASE_URL: ${CLUSTER_DOMAIN}
 echo ""
 
 # ============================================================================
+# Apply ArgoCD RBAC for OpenShift AI
+# ============================================================================
+
+print_info "Applying ArgoCD RBAC for OpenShift AI and other operators..."
+oc apply -f manifests/12-argocd-openshift-ai-rbac.yaml
+
+print_success "ArgoCD RBAC configured for managing OpenShift AI resources"
+echo ""
+
+# ============================================================================
 # PART 2: Installing Gitea (if selected)
 # ============================================================================
 
