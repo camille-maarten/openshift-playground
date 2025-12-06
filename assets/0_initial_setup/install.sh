@@ -247,12 +247,31 @@ oc apply -f manifests/07-argocd-rbac-configmap.yaml
 print_info "Ensuring admin-user password is set..."
 oc apply -f manifests/10-admin-password-secret.yaml
 
-print_info "Restarting ArgoCD server pods to pick up configuration changes..."
-oc delete pod -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops
+print_info "Restarting ArgoCD server deployment to pick up configuration changes..."
+# Use rollout restart instead of deleting pods - this is cleaner and safer
+oc rollout restart deployment/openshift-gitops-server -n openshift-gitops
 
-print_info "Waiting for ArgoCD server to restart..."
-sleep 15
-oc wait --for=condition=Ready pod -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops --timeout=360s
+print_info "Waiting for ArgoCD server rollout to complete (timeout: 5 minutes)..."
+# Wait for the rollout to complete with proper timeout handling
+if oc rollout status deployment/openshift-gitops-server -n openshift-gitops --timeout=300s; then
+    print_success "ArgoCD server restarted successfully"
+else
+    print_warning "Rollout status check timed out or failed"
+    print_info "Checking pod status manually..."
+
+    # Check if pods are actually running despite the timeout
+    READY_PODS=$(oc get pod -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops --no-headers 2>/dev/null | grep "Running" | grep "1/1\|2/2" | wc -l || echo "0")
+
+    if [ "$READY_PODS" -ge "1" ]; then
+        print_success "At least one ArgoCD server pod is running and ready"
+    else
+        print_error "ArgoCD server pods are not ready"
+        print_info "Pod status:"
+        oc get pods -n openshift-gitops -l app.kubernetes.io/name=openshift-gitops-server
+        print_info "Check pod logs with: oc logs -l app.kubernetes.io/name=openshift-gitops-server -n openshift-gitops"
+        exit 1
+    fi
+fi
 
 print_info "ArgoCD installation complete!"
 echo ""
