@@ -74,7 +74,7 @@ data:
                 - resolver: usernameMatchingUserEntityName
 
     # Sign-in page configuration - allow users to choose between providers
-    signInPage: openshift
+    # Removed signInPage setting to show all available auth providers (Keycloak OIDC and OpenShift OAuth)
 
     # Permission framework configuration
     permission:
